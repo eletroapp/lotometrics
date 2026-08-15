@@ -312,6 +312,27 @@
   .cascata-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-glow);}
   .cascata-final{margin-top:.75rem; display:flex; flex-wrap:wrap; gap:.375rem; align-items:center;}
   .ball-extra{border:1.5px dashed var(--accent-lotofacil); background:transparent !important; color:var(--accent-lotofacil) !important;}
+
+  /* ---------- desdobramento ---------- */
+  .desdob-modos{display:flex; flex-wrap:wrap; gap:.5rem;}
+  .desdob-modo-btn{
+    border:1px solid var(--border); background:var(--surface-2); color:var(--muted-foreground);
+    border-radius:.625rem; padding:.5rem .75rem; font-size:.8125rem; font-weight:600;
+    display:inline-flex; align-items:center; gap:.4rem; transition:background-color var(--transition-smooth), color var(--transition-smooth), border-color var(--transition-smooth);
+  }
+  .desdob-modo-btn .dot{width:.5rem; height:.5rem; border-radius:99px; display:inline-block;}
+  .desdob-modo-btn.active{color:var(--foreground); border-color:color-mix(in oklab, var(--accent) 45%, transparent); background:color-mix(in oklab, var(--accent) 16%, var(--surface-2));}
+  .desdob-grid{margin-top:.5rem; display:grid; grid-template-columns:repeat(auto-fill, minmax(2.5rem, 1fr)); gap:.4rem; max-height:16rem; overflow-y:auto; padding:.75rem; border:1px solid var(--border); border-radius:.75rem; background:var(--surface-2);}
+  .ball-pick{
+    display:inline-flex; align-items:center; justify-content:center; width:100%; aspect-ratio:1; border-radius:9999px;
+    font-family:"Space Grotesk"; font-weight:700; font-size:.8125rem; font-variant-numeric:tabular-nums;
+    background:var(--surface); border:1px solid var(--border); color:var(--muted-foreground);
+    transition:transform var(--transition-smooth), background-color var(--transition-smooth), color var(--transition-smooth), border-color var(--transition-smooth);
+  }
+  .ball-pick:hover{transform:translateY(-2px); border-color:var(--accent);}
+  .ball-pick.selected{background-color:var(--accent); border-color:var(--accent); color:var(--on-accent);}
+  .desdob-contador{margin-top:.5rem; font-size:.8125rem; color:var(--muted-foreground); display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap:wrap;}
+  .desdob-contador strong{color:var(--foreground);}
   .toggle-row{display:flex; align-items:center; gap:.5rem; font-size:.8125rem; color:var(--muted-foreground);}
   .switch{position:relative; width:2.5rem; height:1.375rem; flex-shrink:0;}
   .switch input{opacity:0; width:0; height:0;}
@@ -480,6 +501,7 @@
 
     <p class="sidebar-label">Ferramentas</p>
     <nav class="sidebar-nav" id="sidebarNavFerramentas"></nav>
+    <nav class="sidebar-nav" id="sidebarNavDesdobramento"></nav>
 
     <p class="sidebar-label">Novidades</p>
     <nav class="sidebar-nav" id="sidebarNavChangelog"></nav>
@@ -530,7 +552,7 @@
           <div class="stack">
             <div class="field">
               <label for="qtd" class="field-label">Quantidade de jogos</label>
-              <input id="qtd" type="number" min="1" max="50" value="5" class="input input-h">
+              <input id="qtd" type="number" min="1" max="200" value="5" class="input input-h">
             </div>
 
             <div class="field">
@@ -625,7 +647,7 @@
             <div class="stack">
               <div class="field">
                 <label for="qtdCascata" class="field-label">Quantidade de jogos</label>
-                <input id="qtdCascata" type="number" min="1" max="30" value="5" class="input input-h">
+                <input id="qtdCascata" type="number" min="1" max="200" value="5" class="input input-h">
               </div>
 
               <div class="field">
@@ -867,6 +889,79 @@
         </div>
       </div>
 
+      <div id="viewDesdobramento" style="display:none;">
+        <section class="hero">
+          <div class="hero-glow" id="desdobGlow"></div>
+          <p class="hero-eyebrow">Ferramenta · Desdobramento</p>
+          <h2>Transforme suas dezenas em vários jogos</h2>
+          <p>Escolha a modalidade, marque as dezenas que você quer usar (mais do que cabe em um jogo) e o app monta a quantidade de jogos que você pedir, aplicando os mesmos filtros base (soma proporcional e limite de consecutivos) daquela modalidade.</p>
+
+          <dl class="stat-grid">
+            <div class="stat-card"><dt>Dezenas escolhidas</dt><dd id="desdobStatEscolhidas">0</dd></div>
+            <div class="stat-card"><dt>Tamanho do jogo</dt><dd id="desdobStatTamanho">6</dd></div>
+            <div class="stat-card"><dt>Universo da modalidade</dt><dd id="desdobStatUniverso">1–60</dd></div>
+          </dl>
+        </section>
+
+        <div class="grid-cols">
+          <section class="panel panel-fit">
+            <h3>Parâmetros do desdobramento</h3>
+            <div class="stack">
+              <div class="field">
+                <span class="field-label">Modalidade</span>
+                <div class="desdob-modos" id="desdobModos"></div>
+              </div>
+
+              <div class="field">
+                <div class="desdob-contador">
+                  <span>Dezenas: <strong id="desdobContador">0</strong> selecionadas</span>
+                  <button class="btn btn-ghost btn-sm" id="btnDesdobLimparSelecao" style="padding:.35rem .6rem;">Limpar seleção</button>
+                </div>
+                <div class="desdob-grid" id="desdobGrid"></div>
+              </div>
+
+              <div class="field">
+                <label for="desdobTamanho" class="field-label">Tamanho de cada jogo</label>
+                <input id="desdobTamanho" type="number" min="6" max="15" value="6" class="input input-h">
+                <p id="desdobTamanhoHint" style="margin-top:.375rem; font-size:12px; color:var(--muted-foreground);"></p>
+              </div>
+
+              <div class="field">
+                <label for="desdobQtd" class="field-label">Quantidade de jogos</label>
+                <input id="desdobQtd" type="number" min="1" max="200" value="10" class="input input-h">
+              </div>
+
+              <button class="btn btn-primary btn-full" id="btnGerarDesdobramento">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2 11 5"/></svg>
+                Gerar desdobramento
+              </button>
+            </div>
+          </section>
+
+          <section class="panel" style="display:flex; min-height:420px; flex-direction:column;">
+            <div class="results-head">
+              <h3>Jogos do desdobramento</h3>
+              <div class="jogo-meta">
+                <span class="badge-count" id="qtdDesdobBadge">0 jogos</span>
+                <button class="btn btn-ghost btn-sm" id="btnLimparDesdobramento" disabled style="padding:.5rem;">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="emptyStateDesdobramento" class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" style="width:1.5rem;height:1.5rem;" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/></svg>
+              </span>
+              <p>Nenhum desdobramento gerado ainda</p>
+              <p>Escolha a modalidade, marque as dezenas e clique em "Gerar desdobramento".</p>
+            </div>
+
+            <ul id="desdobList" class="jogos-list" style="display:none;"></ul>
+          </section>
+        </div>
+      </div>
+
       <div id="viewConferidor" style="display:none;">
         <section class="hero">
           <div class="hero-glow" id="heroGlowConferidor"></div>
@@ -1065,6 +1160,16 @@ const LOTERIAS = {
   },
 };
 const LOTERIA_KEYS = Object.keys(LOTERIAS);
+
+// Faixa de tamanho de jogo aceita pelo desdobramento em cada modalidade
+// (mesmas faixas de aposta múltipla já usadas nas cascatas — Lotomania tem tamanho fixo).
+const DESDOB_TAMANHO = {
+  megasena: { min: 6, max: 15 },
+  lotofacil: { min: 15, max: 20 },
+  duplasena: { min: 6, max: 12 },
+  lotomania: { min: 50, max: 50 },
+  diadesorte: { min: 7, max: 15 },
+};
 
 // Página oficial de cada modalidade no Portal Loterias da Caixa — usada no link "Mais detalhes"
 const URL_DETALHES_CAIXA = {
@@ -2031,6 +2136,12 @@ const state = {
   cascataMSJogos: [],
   cascataDSJogos: [],
   avisoCriterioParcial: false,
+  desdobramento: {
+    loteria: "megasena",
+    selecionadas: [],
+    tamanho: 6,
+    jogos: [],
+  },
   conferidor: {
     loteria: "megasena",
     jogos: [],
@@ -2134,6 +2245,24 @@ function renderSidebar(){
   });
   navFerr.appendChild(btnConferidor);
 
+  const navDesdob = document.getElementById("sidebarNavDesdobramento");
+  navDesdob.innerHTML = "";
+  const ativoDesdob = state.modo === "desdobramento";
+  const btnDesdob = document.createElement("button");
+  btnDesdob.className = "nav-item" + (ativoDesdob ? " active" : "");
+  if(ativoDesdob) btnDesdob.style.boxShadow = "inset 3px 0 0 0 var(--primary)";
+  btnDesdob.innerHTML = `
+    <span class="nav-badge" style="background-color:var(--primary)">
+      <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
+    </span>
+    <span class="nav-name">Desdobramento</span>
+  `;
+  btnDesdob.addEventListener("click", () => {
+    trocarModo("desdobramento");
+    closeSidebar();
+  });
+  navDesdob.appendChild(btnDesdob);
+
   const navChangelog = document.getElementById("sidebarNavChangelog");
   navChangelog.innerHTML = "";
   const ativoChangelog = state.modo === "changelog";
@@ -2161,17 +2290,20 @@ function trocarModo(modo){
   document.getElementById("viewCascataDS").style.display = modo === "cascata-duplasena" ? "" : "none";
   document.getElementById("viewConferidor").style.display = modo === "conferidor" ? "" : "none";
   document.getElementById("viewChangelog").style.display = modo === "changelog" ? "" : "none";
+  document.getElementById("viewDesdobramento").style.display = modo === "desdobramento" ? "" : "none";
   document.getElementById("tituloLoteria").textContent =
     modo === "cascata-lotofacil" ? "Lotofácil · Cascata" :
     modo === "cascata-megasena" ? "Mega-Sena · Cascata" :
     modo === "cascata-duplasena" ? "Dupla Sena · Cascata" :
     modo === "conferidor" ? "Conferidor" :
-    modo === "changelog" ? "O que mudou" : conf().nome;
+    modo === "changelog" ? "O que mudou" :
+    modo === "desdobramento" ? "Desdobramento" : conf().nome;
   const semJogos = modo === "cascata-lotofacil" ? state.cascataJogos.length === 0
     : modo === "cascata-megasena" ? state.cascataMSJogos.length === 0
     : modo === "cascata-duplasena" ? state.cascataDSJogos.length === 0
     : modo === "conferidor" ? true
     : modo === "changelog" ? true
+    : modo === "desdobramento" ? state.desdobramento.jogos.length === 0
     : state.jogos.length === 0;
   document.getElementById("btnCopiar").disabled = semJogos;
   document.getElementById("btnPdf").disabled = semJogos;
@@ -2315,11 +2447,196 @@ function renderResultados(){
   }).join("");
 }
 
+/* ============ Desdobramento ============ */
+function desdobConf(){ return LOTERIAS[state.desdobramento.loteria]; }
+
+function renderDesdobModos(){
+  const wrap = document.getElementById("desdobModos");
+  wrap.innerHTML = LOTERIA_KEYS.map(k => {
+    const c = LOTERIAS[k];
+    const active = k === state.desdobramento.loteria;
+    return `<button type="button" class="desdob-modo-btn${active ? " active" : ""}" data-k="${k}">
+      <span class="dot" style="background-color:${c.accent}"></span>${c.nome}
+    </button>`;
+  }).join("");
+  wrap.querySelectorAll(".desdob-modo-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const k = btn.dataset.k;
+      if(state.desdobramento.loteria === k) return;
+      state.desdobramento.loteria = k;
+      state.desdobramento.selecionadas = [];
+      state.desdobramento.tamanho = DESDOB_TAMANHO[k].min;
+      renderDesdobModos();
+      renderDesdobGrid();
+      atualizarDesdobParams();
+    });
+  });
+}
+
+function renderDesdobGrid(){
+  const c = desdobConf();
+  const grid = document.getElementById("desdobGrid");
+  const sel = new Set(state.desdobramento.selecionadas);
+  let html = "";
+  for(let n = c.minNumero; n <= c.maxNumero; n++){
+    const on = sel.has(n);
+    html += `<button type="button" class="ball-pick${on ? " selected" : ""}" data-n="${n}" style="${on ? `background-color:${c.accent}; border-color:${c.accent};` : ""}">${pad(n)}</button>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll(".ball-pick").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const n = parseInt(btn.dataset.n, 10);
+      const arr = state.desdobramento.selecionadas;
+      const idx = arr.indexOf(n);
+      if(idx >= 0) arr.splice(idx, 1);
+      else arr.push(n);
+      renderDesdobGrid();
+      atualizarDesdobParams();
+    });
+  });
+  document.getElementById("desdobContador").textContent = String(state.desdobramento.selecionadas.length);
+  document.getElementById("desdobStatEscolhidas").textContent = String(state.desdobramento.selecionadas.length);
+  document.getElementById("desdobStatUniverso").textContent = `${pad(c.minNumero)}–${pad(c.maxNumero)}`;
+}
+
+function atualizarDesdobParams(){
+  const c = desdobConf();
+  const faixa = DESDOB_TAMANHO[state.desdobramento.loteria];
+  const n = state.desdobramento.selecionadas.length;
+  const tamanhoInput = document.getElementById("desdobTamanho");
+
+  tamanhoInput.min = faixa.min;
+  tamanhoInput.max = faixa.max;
+  if(faixa.min === faixa.max){
+    tamanhoInput.value = faixa.min;
+    tamanhoInput.disabled = true;
+  } else {
+    tamanhoInput.disabled = false;
+    const maxPossivel = Math.min(faixa.max, Math.max(faixa.min, n - 1));
+    if(parseInt(tamanhoInput.value, 10) > maxPossivel) tamanhoInput.value = maxPossivel;
+    if(parseInt(tamanhoInput.value, 10) < faixa.min) tamanhoInput.value = faixa.min;
+  }
+  state.desdobramento.tamanho = parseInt(tamanhoInput.value, 10) || faixa.min;
+  document.getElementById("desdobStatTamanho").textContent = String(state.desdobramento.tamanho);
+
+  const hint = document.getElementById("desdobTamanhoHint");
+  hint.textContent = faixa.min === faixa.max
+    ? `${c.nome} tem tamanho de jogo fixo: ${faixa.min} dezenas.`
+    : `Aceita de ${faixa.min} a ${faixa.max} dezenas por jogo nessa modalidade. Escolha mais dezenas do que o tamanho do jogo.`;
+
+  document.getElementById("btnGerarDesdobramento").disabled = n <= state.desdobramento.tamanho;
+}
+
+document.getElementById("desdobTamanho").addEventListener("input", atualizarDesdobParams);
+
+document.getElementById("btnDesdobLimparSelecao").addEventListener("click", () => {
+  state.desdobramento.selecionadas = [];
+  renderDesdobGrid();
+  atualizarDesdobParams();
+});
+
+function desdobJogoValido(jogo, c, tamanho){
+  if(c.maxConsecutivos && !validarSequencia(jogo, c)) return false;
+  const fator = tamanho / c.dezenasPorJogo;
+  const somaMin = Math.round(c.somaMin * fator);
+  const somaMax = Math.round(c.somaMax * fator);
+  return validarSoma(jogo, { somaMin, somaMax });
+}
+
+function desdobSortear(universo, tamanho, c, maxTentativas){
+  for(let t = 0; t < (maxTentativas || 400); t++){
+    const jogo = sortearJogoAleatorio(universo, tamanho).sort((a,b)=>a-b);
+    if(desdobJogoValido(jogo, c, tamanho)) return jogo;
+  }
+  return null;
+}
+
+function gerarDesdobramento(){
+  const c = desdobConf();
+  const d = state.desdobramento;
+  const universo = [...d.selecionadas];
+  const tamanho = d.tamanho;
+  const quantidadeInput = parseInt(document.getElementById("desdobQtd").value, 10) || 1;
+  const quantidade = Math.min(Math.max(quantidadeInput, 1), 200);
+
+  const jogos = [];
+  const vistos = new Set();
+  const limiteGlobal = Math.max(quantidade * 300, 3000);
+  let tentativas = 0;
+  while(jogos.length < quantidade && tentativas < limiteGlobal){
+    tentativas++;
+    const jogo = desdobSortear(universo, tamanho, c);
+    if(!jogo) continue;
+    const chave = jogo.join(",");
+    if(vistos.has(chave)) continue;
+    vistos.add(chave);
+    jogos.push(jogo);
+  }
+  return { jogos, quantidade };
+}
+
+function renderDesdobramento(){
+  const list = document.getElementById("desdobList");
+  const empty = document.getElementById("emptyStateDesdobramento");
+  const jogos = state.desdobramento.jogos;
+  document.getElementById("qtdDesdobBadge").textContent = `${jogos.length} jogos`;
+  document.getElementById("btnLimparDesdobramento").disabled = jogos.length === 0;
+  if(jogos.length === 0){
+    empty.style.display = "flex";
+    list.style.display = "none";
+    list.innerHTML = "";
+    return;
+  }
+  empty.style.display = "none";
+  list.style.display = "flex";
+  const c = desdobConf();
+  list.innerHTML = jogos.map((jogo, i) => {
+    const soma = jogo.reduce((a,b)=>a+b, 0);
+    const bolas = jogo.map(n => `<span class="ball" style="background-color:${c.accent}; color:var(--on-accent);">${pad(n)}</span>`).join("");
+    return `
+      <li class="cascata-card">
+        <div class="jogo-row">
+          <span class="jogo-idx">Jogo ${pad(i+1)} · ${jogo.length} dezenas</span>
+          <span class="soma-txt">soma ${soma}</span>
+        </div>
+        <div class="balls">${bolas}</div>
+      </li>
+    `;
+  }).join("");
+}
+
+document.getElementById("btnGerarDesdobramento").addEventListener("click", () => {
+  const d = state.desdobramento;
+  if(d.selecionadas.length <= d.tamanho){
+    toast("error", "Selecione mais dezenas", `Escolha mais do que ${d.tamanho} dezenas para desdobrar em jogos desse tamanho.`);
+    return;
+  }
+  const { jogos, quantidade } = gerarDesdobramento();
+  state.desdobramento.jogos = jogos;
+  renderDesdobramento();
+  document.getElementById("btnCopiar").disabled = jogos.length === 0;
+  document.getElementById("btnPdf").disabled = jogos.length === 0;
+  if(jogos.length < quantidade){
+    toast("error", `Só consegui ${jogos.length} de ${quantidade} jogo(s)`, "As dezenas escolhidas e os filtros da modalidade limitam quantas combinações únicas cabem.");
+  } else {
+    toast("success", `${jogos.length} jogo(s) gerado(s)`, `Desdobramento · ${desdobConf().nome}`);
+  }
+});
+
+document.getElementById("btnLimparDesdobramento").addEventListener("click", () => {
+  state.desdobramento.jogos = [];
+  renderDesdobramento();
+  if(state.modo === "desdobramento"){
+    document.getElementById("btnCopiar").disabled = true;
+    document.getElementById("btnPdf").disabled = true;
+  }
+});
+
 /* ============ Ações ============ */
 document.getElementById("btnGerar").addEventListener("click", () => {
   const c = conf();
   const qtdInput = parseInt(document.getElementById("qtd").value, 10) || 1;
-  const quantidade = Math.min(Math.max(qtdInput, 1), 50);
+  const quantidade = Math.min(Math.max(qtdInput, 1), 200);
   state.avisoCriterioParcial = false;
   state.jogos = gerarJogos(c, quantidade, anteriorAtual());
   state.acertos = null;
@@ -2371,6 +2688,8 @@ document.getElementById("btnCopiar").addEventListener("click", () => {
     texto = state.cascataMSJogos.map(j => j.resultado.map(pad).join(" ")).join("\n");
   } else if(state.modo === "cascata-duplasena"){
     texto = state.cascataDSJogos.map(j => j.resultado.map(pad).join(" ")).join("\n");
+  } else if(state.modo === "desdobramento"){
+    texto = state.desdobramento.jogos.map(j => j.map(pad).join(" ")).join("\n");
   } else {
     texto = state.jogos.map((j,i) => {
       const linha = j.map(pad).join(" ");
@@ -2459,6 +2778,22 @@ document.getElementById("btnPdf").addEventListener("click", () => {
       y += 2.5;
     });
     doc.save("jogos-duplasena-cascata.pdf");
+    return;
+  }
+
+  if(state.modo === "desdobramento"){
+    const dc = desdobConf();
+    const d = state.desdobramento;
+    doc.text(`LotoMetrics Pro IA — Desdobramento (${dc.nome})`, 14, 18);
+    doc.setFontSize(10);
+    doc.text(new Date().toLocaleString("pt-BR"), 14, 25);
+    let y = pdfEscreverLinha(doc, `Dezenas escolhidas (${d.selecionadas.length}): ${[...d.selecionadas].sort((a,b)=>a-b).map(pad).join(" ")}`, 14, 31, { indent: 0 });
+    y += 6;
+    d.jogos.forEach((jogo, i) => {
+      y = pdfEscreverLinha(doc, `Jogo ${pad(i+1)}:  ${jogo.map(pad).join("  ")}`, 14, y, { indent: 22 });
+      y += 2.5;
+    });
+    doc.save(`jogos-desdobramento-${dc.key}.pdf`);
     return;
   }
 
@@ -2776,7 +3111,7 @@ atualizarComoFunciona();
 
 document.getElementById("btnGerarCascata").addEventListener("click", () => {
   const qtdInput = parseInt(document.getElementById("qtdCascata").value, 10) || 1;
-  const quantidade = Math.min(Math.max(qtdInput, 1), 30);
+  const quantidade = Math.min(Math.max(qtdInput, 1), 200);
   const tamanhoAlvo = parseInt(document.getElementById("tamanhoCascata").value, 10);
 
   let t23Custom = null;
@@ -3068,6 +3403,10 @@ renderCascataDS();
 renderInicio();
 popularSelectConferidor();
 renderConferidor();
+renderDesdobModos();
+renderDesdobGrid();
+atualizarDesdobParams();
+renderDesdobramento();
 mostrarInicio();
 
 </script>
