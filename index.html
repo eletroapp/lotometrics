@@ -1,0 +1,3136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LotoMetrics Pro IA — Gerador Inteligente de Jogos</title>
+<meta name="description" content="Gere jogos da Mega-Sena, Lotofácil, Dupla Sena, Lotomania e Dia de Sorte com filtros estatísticos, confira acertos e exporte em PDF.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --radius: 0.875rem;
+    --background: #0f1020;
+    --foreground: #f1f2f8;
+    --surface: #191b32;
+    --surface-2: #21233c;
+    --primary: #6366f1;
+    --primary-foreground: #ffffff;
+    --secondary: #262845;
+    --secondary-foreground: #f1f2f8;
+    --muted-foreground: #9598b3;
+    --destructive: #f87171;
+    --success: #34d399;
+    --border: #2d2f4d;
+    --input: #383a5c;
+    --ring: #6366f1;
+    --on-accent: #14152b;
+
+    --accent-megasena: #16c087;
+    --accent-lotofacil: #a855f7;
+    --accent-duplasena: #f43f5e;
+    --accent-lotomania: #fb923c;
+    --accent-diadesorte: #eab308;
+
+    --gradient-hero: linear-gradient(120deg, #4338ca 0%, #4f46e5 55%, #6d28d9 100%);
+    --gradient-primary: linear-gradient(120deg, #4f46e5, #6366f1);
+    --shadow-panel: 0 1px 0 0 rgba(255,255,255,0.04) inset, 0 18px 44px -24px rgba(0,0,0,0.65);
+    --shadow-glow: 0 0 0 1px rgba(99,102,241,0.35), 0 14px 28px -14px rgba(99,102,241,0.4);
+    --transition-smooth: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar: #131427;
+    --sidebar-accent: #242640;
+    --sidebar-border: #2d2f4d;
+  }
+  *{box-sizing:border-box; border-color:var(--border);}
+  html,body{margin:0; padding:0;}
+  body{
+    background-color:var(--background);
+    color:var(--foreground);
+    font-family:"DM Sans", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1,h2,h3,h4{font-family:"Space Grotesk", ui-sans-serif, system-ui, sans-serif; letter-spacing:-0.02em; margin:0;}
+  button{font-family:inherit; cursor:pointer;}
+  input, textarea, select{font-family:inherit; color:var(--foreground); background:transparent;}
+
+  :where(button, a, input, textarea, select, summary):focus-visible{
+    outline:2px solid color-mix(in oklab, var(--ring) 85%, transparent); outline-offset:2px; border-radius:.5rem;
+  }
+  ::selection{background:color-mix(in oklab, var(--primary) 45%, transparent);}
+  body::before{content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:radial-gradient(60rem 32rem at 78% -12%, rgba(99,102,241,.14), transparent 60%),
+               radial-gradient(48rem 28rem at -8% 8%, rgba(168,85,247,.10), transparent 60%);}
+  .app{position:relative; z-index:1;}
+  .icon{width:1em; height:1em; display:inline-block; vertical-align:-0.125em; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+
+  /* ---------- layout ---------- */
+  .app{min-height:100vh;}
+  .main-wrap{transition:padding-left .2s;}
+  @media (min-width:1024px){ .main-wrap{padding-left:18rem;} }
+  .main-wrap.full{padding-left:0 !important;}
+
+  /* ---------- navbar (home) ---------- */
+  .navbar{
+    position:sticky; top:0; z-index:25; display:flex; align-items:center; justify-content:space-between;
+    gap:1rem; padding:.875rem 1.25rem; background:rgba(20,21,43,0.85); backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--border);
+  }
+  @media (min-width:640px){ .navbar{padding:1rem 2rem;} }
+  .navbar-brand{display:flex; align-items:center; gap:.75rem;}
+  .navbar-brand h1{font-size:1.125rem; font-weight:700;}
+  .navbar-brand p{font-size:12px; color:var(--muted-foreground);}
+  .navbar-tabs{display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; justify-content:flex-end;}
+  .navbar-tab{
+    position:relative; display:inline-flex; align-items:center; gap:.5rem;
+    border:1px solid transparent; border-top:2px solid var(--accent);
+    background:transparent; color:var(--accent);
+    border-radius:.625rem; padding:.55rem .95rem; font-size:.8125rem; font-weight:600;
+    transition:background-color var(--transition-smooth), color var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-smooth);
+  }
+  .navbar-tab::before{content:""; position:absolute; left:.75rem; right:.75rem; top:0; height:2px; border-radius:0 0 2px 2px; background:var(--accent); opacity:0; transition:opacity var(--transition-smooth);}
+  .navbar-tab:hover{background:color-mix(in oklab, var(--accent) 12%, transparent); transform:translateY(-1px);}
+  .navbar-tab.active{background:color-mix(in oklab, var(--accent) 18%, var(--surface-2)); border-color:color-mix(in oklab, var(--accent) 35%, transparent); color:var(--accent);}
+  .navbar-tab .tab-dot{display:none;}
+  @media (max-width:900px){ .navbar{flex-wrap:wrap;} .navbar-tabs{width:100%; justify-content:flex-start;} }
+
+  /* ---------- sidebar ---------- */
+  .sidebar-overlay{position:fixed; inset:0; z-index:30; background:rgba(20,21,45,0.45); backdrop-filter:blur(4px); display:none;}
+  .sidebar-overlay.show{display:block;}
+  @media (min-width:1024px){ .sidebar-overlay{display:none !important;} }
+
+  .sidebar{
+    position:fixed; inset-block:0; left:0; z-index:40;
+    width:18rem; display:flex; flex-direction:column;
+    border-right:1px solid var(--sidebar-border);
+    background:var(--sidebar);
+    padding:1.25rem 1rem 1.5rem;
+    transform:translateX(-100%);
+    transition:transform .3s cubic-bezier(.4,0,.2,1);
+    /* correção: permite acessar todos os menus em telas baixas */
+    max-height:100vh;
+    max-height:100dvh;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-width:thin;
+    scrollbar-color:var(--input) transparent;
+    box-shadow:0 24px 60px -30px rgba(0,0,0,.8);
+  }
+  .sidebar::-webkit-scrollbar{width:8px;}
+  .sidebar::-webkit-scrollbar-thumb{background:var(--input); border-radius:99px; border:2px solid var(--sidebar);}
+  .sidebar::-webkit-scrollbar-thumb:hover{background:#4a4d75;}
+  .sidebar::-webkit-scrollbar-track{background:transparent;}
+  .sidebar.open{transform:translateX(0);}
+  @media (min-width:1024px){ .sidebar{transform:translateX(0);} }
+  .sidebar.hidden-shell{display:none;}
+
+  .sidebar-head{position:sticky; top:-1.25rem; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+    margin:-1.25rem -1rem .25rem; padding:1.25rem 1rem .75rem;
+    background:linear-gradient(to bottom, var(--sidebar) 76%, color-mix(in oklab, var(--sidebar) 70%, transparent));
+    border-bottom:1px solid var(--sidebar-border);}
+  .sidebar-brand{display:flex; align-items:center; gap:.75rem; min-width:0; cursor:pointer;}
+  .brand-badge{display:grid; place-items:center; width:2.5rem; height:2.5rem; flex-shrink:0; border-radius:.75rem; background-image:var(--gradient-primary); color:var(--primary-foreground);}
+  .sidebar-close{border:none; background:none; padding:.25rem; border-radius:.375rem; color:var(--muted-foreground);}
+  .sidebar-close:hover{background:var(--sidebar-accent);}
+  @media (min-width:1024px){ .sidebar-close{display:none;} }
+
+  .sidebar-label{margin-top:1.5rem; padding:0 .5rem; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.18em; color:var(--muted-foreground);}
+  .sidebar-nav{margin-top:.75rem; display:flex; flex-direction:column; gap:.25rem;}
+  .nav-item{
+    position:relative; display:flex; align-items:center; gap:.75rem; border:1px solid transparent; background:none;
+    border-radius:.625rem; padding:.6rem .75rem; text-align:left; font-size:.875rem; font-weight:500;
+    color:var(--muted-foreground); transition:background-color var(--transition-smooth), color var(--transition-smooth), border-color var(--transition-smooth);
+  }
+  .nav-item::before{content:""; position:absolute; left:0; top:50%; width:3px; height:0; border-radius:99px;
+    background-image:var(--gradient-primary); transform:translateY(-50%); transition:height var(--transition-smooth);}
+  .nav-item:hover{background:var(--sidebar-accent); color:var(--foreground);}
+  .nav-item.active{background:linear-gradient(90deg, color-mix(in oklab, var(--primary) 20%, transparent), var(--sidebar-accent));
+    border-color:color-mix(in oklab, var(--primary) 28%, transparent); color:var(--foreground); font-weight:600;}
+  .nav-item.active::before{height:60%;}
+  .nav-badge{display:grid; place-items:center; flex-shrink:0; width:2rem; height:2rem; border-radius:.5rem; font-family:"Space Grotesk"; font-size:11px; font-weight:700; color:var(--on-accent);}
+  .nav-name{min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .nav-qtd{flex-shrink:0; font-size:11px; font-variant-numeric:tabular-nums; color:var(--muted-foreground);}
+  .nav-inicio{margin-top:.75rem; display:flex; align-items:center; gap:.625rem; border:none; background:none; border-radius:.5rem; padding:.625rem .75rem; text-align:left; font-size:.875rem; font-weight:600; color:var(--primary); margin-bottom:.5rem;}
+  .nav-inicio:hover{background:var(--sidebar-accent);}
+
+  .sidebar-footer{margin-top:1.5rem; border-radius:.75rem; border:1px solid var(--sidebar-border); background:var(--surface-2); padding:1rem; font-size:12px; line-height:1.6; color:var(--muted-foreground);}
+
+  /* ---------- topbar ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:20; display:grid; grid-template-columns:minmax(0,1fr) auto;
+    align-items:center; gap:1rem; border-bottom:1px solid var(--border);
+    background:rgba(20,21,43,0.85); backdrop-filter:blur(20px);
+    padding:.75rem 1rem;
+  }
+  @media (min-width:640px){ .topbar{padding:.75rem 2rem;} }
+  .topbar-left{display:flex; min-width:0; align-items:center; gap:.75rem;}
+  .menu-btn{flex-shrink:0; border-radius:.5rem; border:1px solid var(--border); background:none; padding:.5rem; color:var(--muted-foreground);}
+  .menu-btn:hover{background:var(--secondary);}
+  @media (min-width:1024px){ .menu-btn{display:none;} }
+  .topbar-title p{font-size:11px; text-transform:uppercase; letter-spacing:.18em; color:var(--muted-foreground);}
+  .topbar-title h1{font-size:1.125rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  @media (min-width:640px){ .topbar-title h1{font-size:1.25rem;} }
+  .topbar-actions{display:flex; flex-shrink:0; align-items:center; gap:.5rem;}
+
+  /* ---------- buttons ---------- */
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:.5rem; border-radius:.5rem; border:none; font-weight:600; font-size:.875rem; transition:background-color var(--transition-smooth), opacity var(--transition-smooth); white-space:nowrap;}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+  .btn-ghost{background:none; color:var(--foreground); padding:.5rem .75rem;}
+  .btn-ghost:hover:not(:disabled){background:var(--secondary);}
+  .btn-secondary{background:var(--secondary); color:var(--secondary-foreground); padding:.5rem .9rem;}
+  .btn-secondary:hover:not(:disabled){background:#31335a;}
+  .btn-primary{background-image:var(--gradient-primary); color:var(--primary-foreground); padding:.75rem 1rem;
+    box-shadow:0 10px 22px -12px rgba(99,102,241,.75);}
+  .btn-primary:hover:not(:disabled){filter:brightness(1.08); box-shadow:0 14px 26px -12px rgba(99,102,241,.9);}
+  .btn-sm{height:2.25rem;}
+  .btn-full{width:100%; height:3rem; font-size:1rem;}
+  .btn-hide-label{}
+  @media (max-width:639px){ .btn-hide-label{display:none;} }
+
+  /* ---------- inputs ---------- */
+  .field-label{display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted-foreground);}
+  .input, .textarea, .select{
+    width:100%; border:1px solid var(--input); background:var(--surface); border-radius:.5rem;
+    padding:.5rem .75rem; font-size:.875rem; outline:none; color:var(--foreground);
+  }
+  .input:focus, .textarea:focus, .select:focus{border-color:var(--ring); box-shadow:0 0 0 2px rgba(79,70,229,0.18);}
+  .input-h{height:2.75rem;}
+  .textarea{resize:vertical;}
+
+  /* ---------- main content ---------- */
+  main{padding:1rem;}
+  @media (min-width:640px){ main{padding:2rem;} }
+  main > * + *{margin-top:1.5rem;}
+
+  .hero{isolation:isolate; position:relative; overflow:hidden; border-radius:1rem; border:1px solid var(--border); padding:1.5rem; background-image:var(--gradient-hero); color:#fff;}
+  @media (min-width:640px){ .hero{padding:2.5rem;} }
+  .hero-glow{position:absolute; right:-4rem; top:-6rem; width:20rem; height:20rem; border-radius:9999px; opacity:.35; filter:blur(70px); background:#fff;}
+  .hero-eyebrow{position:relative; display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.18em; color:#fff; background:rgba(255,255,255,0.16); padding:.3rem .75rem; border-radius:9999px;}
+  .hero h2{position:relative; margin-top:.9rem; max-width:42rem; font-size:1.75rem; font-weight:700; line-height:1.2; color:#fff;}
+  @media (min-width:640px){ .hero h2{font-size:2.5rem;} }
+  .hero p{position:relative; margin-top:.75rem; max-width:36rem; font-size:.9375rem; color:rgba(255,255,255,0.85);}
+
+  .stat-grid{position:relative; margin-top:1.75rem; display:grid; grid-template-columns:repeat(2,1fr); gap:.75rem;}
+  @media (min-width:640px){ .stat-grid{grid-template-columns:repeat(4,1fr);} }
+  .stat-card{border-radius:.75rem; border:1px solid rgba(255,255,255,0.25); background:rgba(255,255,255,0.12); backdrop-filter:blur(8px); padding:.75rem 1rem;}
+  .stat-card dt{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:rgba(255,255,255,0.75);}
+  .stat-card dd{margin:.25rem 0 0; font-size:1.25rem; font-weight:700; font-variant-numeric:tabular-nums; color:#fff;}
+
+  .grid-cols{display:grid; gap:1.5rem;}
+  @media (min-width:1280px){ .grid-cols{grid-template-columns:380px minmax(0,1fr);} }
+
+  .panel{background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 92%, #fff 8%), var(--surface));
+    border:1px solid var(--border); border-radius:1.125rem; box-shadow:var(--shadow-panel); padding:1.25rem;}
+  @media (min-width:640px){ .panel{padding:1.5rem;} }
+  .panel-fit{height:fit-content;}
+  .panel h3{font-size:1rem; font-weight:700;}
+
+  .stack{margin-top:1.25rem; display:flex; flex-direction:column; gap:1.25rem;}
+  .field{}
+  .field .input{margin-top:.5rem;}
+
+  .row-wrap{margin-top:.5rem; display:flex; flex-wrap:wrap; gap:.5rem;}
+  .concurso-input{width:8rem;}
+  .flex-1{flex:1;}
+
+  .concurso-label{margin-top:.25rem; font-size:12px; font-weight:500;}
+
+  .criterios-box{border-radius:.75rem; border:1px solid var(--border); background:var(--surface-2); padding:1rem;}
+  .criterios-box p{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted-foreground);}
+  .criterios-box ul{margin:.75rem 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:.5rem; font-size:.875rem; color:var(--foreground);}
+  .criterios-box li{display:flex; gap:.5rem;}
+  .dot{margin-top:.375rem; width:6px; height:6px; flex-shrink:0; border-radius:9999px;}
+
+  .results-head{display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:.75rem;}
+  @media (min-width:640px){ .results-head{display:flex; justify-content:space-between;} }
+  .results-head h3{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .badge-count{border-radius:9999px; background:var(--secondary); padding:.25rem .75rem; font-size:12px; font-weight:600; font-variant-numeric:tabular-nums;}
+
+  .conferir-box{margin-top:1rem; display:flex; flex-direction:column; gap:.5rem; border-radius:.75rem; border:1px solid var(--border); background:var(--surface-2); padding:.75rem;}
+  @media (min-width:640px){ .conferir-box{flex-direction:row;} }
+
+  .empty-state{display:flex; min-height:300px; flex:1; flex-direction:column; align-items:center; justify-content:center; padding:4rem 0; text-align:center;}
+  .empty-icon{display:grid; place-items:center; width:3.5rem; height:3.5rem; border-radius:1rem; border:1px solid var(--border); background:var(--surface-2); color:var(--muted-foreground);}
+  .empty-state p:first-of-type{margin-top:1rem; font-family:"Space Grotesk"; font-size:1rem; font-weight:600;}
+  .empty-state p:last-of-type{margin-top:.25rem; max-width:20rem; font-size:.875rem; color:var(--muted-foreground);}
+
+  .jogos-list{margin:1rem 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:.75rem;}
+  .jogo-card{border-radius:.75rem; border:1px solid var(--border); background:var(--surface-2); padding:1rem; transition:transform var(--transition-smooth), box-shadow var(--transition-smooth);}
+  .jogo-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-glow);}
+  .jogo-row{display:flex; align-items:center; justify-content:space-between; gap:.75rem;}
+  .jogo-idx{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted-foreground);}
+  .jogo-meta{display:flex; align-items:center; gap:.5rem;}
+  .acertos-badge{border-radius:9999px; padding:.25rem .625rem; font-size:11px; font-weight:700; color:var(--on-accent);}
+  .soma-txt{font-size:12px; font-variant-numeric:tabular-nums; color:var(--muted-foreground);}
+  .balls{margin-top:.75rem; display:flex; flex-wrap:wrap; gap:.375rem;}
+  .ball{display:inline-flex; align-items:center; justify-content:center; width:2.25rem; height:2.25rem; font-size:.875rem; border-radius:9999px; font-family:"Space Grotesk"; font-weight:700; font-variant-numeric:tabular-nums; transition:transform var(--transition-smooth);}
+  .ball:hover{transform:translateY(-2px);}
+  .ball.off{background:var(--surface); border:1px solid var(--border);}
+  @media (max-width:479px){
+    .balls{gap:.3rem;}
+    .ball{width:1.9rem; height:1.9rem; font-size:.75rem;}
+    .jogo-card{padding:.75rem;}
+  }
+  @media (max-width:359px){
+    .ball{width:1.7rem; height:1.7rem; font-size:.6875rem;}
+  }
+
+  footer.foot{border-top:1px solid var(--border); padding-top:1.5rem; font-size:12px; color:var(--muted-foreground);}
+  .foot-credit{margin-top:1.1rem; padding-top:1.1rem; border-top:1px dashed var(--border); text-align:center;}
+  .foot-credit-title{font-family:"Space Grotesk"; font-size:1.0625rem; font-weight:700; letter-spacing:-0.01em;}
+  .foot-credit-title .brand-loto{color:var(--foreground);}
+  .foot-credit-title .brand-pro{background-image:var(--gradient-primary); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .foot-credit-title .brand-tagline{color:var(--foreground); font-weight:600;}
+  .foot-credit-sub{margin-top:.4rem; font-size:12.5px; color:var(--muted-foreground);}
+  .foot-credit-sub strong{color:var(--foreground); font-weight:700;}
+  .foot-privado{margin-top:.65rem; padding:.6rem .75rem; border-radius:.5rem; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.35); font-size:12px; line-height:1.5; color:#f87171; max-width:640px; margin-left:auto; margin-right:auto;}
+  .foot-privado strong{color:#f87171; font-weight:700;}
+
+  /* ---------- toasts ---------- */
+  .toast-wrap{position:fixed; bottom:1rem; right:1rem; z-index:50; display:flex; flex-direction:column; gap:.5rem; max-width:22rem;}
+  .toast{border-radius:.75rem; border:1px solid var(--border); background:var(--surface); box-shadow:var(--shadow-panel); padding:.75rem 1rem; font-size:.8125rem; animation:toast-in .18s ease-out;}
+  .toast.success{border-color:rgba(16,185,129,0.4);}
+  .toast.error{border-color:rgba(239,68,68,0.4);}
+  .toast-title{font-weight:700;}
+  .toast-desc{margin-top:.125rem; color:var(--muted-foreground);}
+  @keyframes toast-in{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+  .spin{animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---------- cascata lotofácil ---------- */
+  .trilha{display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-top:.75rem;}
+  .trilha-etapa{display:flex; flex-direction:column; align-items:center; gap:.375rem; border-radius:.625rem; border:1px solid var(--border); background:var(--surface-2); padding:.5rem .75rem; min-width:4.25rem;}
+  .trilha-etapa .n{font-family:"Space Grotesk"; font-size:1.125rem; font-weight:700;}
+  .trilha-etapa .l{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted-foreground);}
+  .trilha-seta{color:var(--muted-foreground); flex-shrink:0;}
+  .cascata-card{border-radius:.75rem; border:1px solid var(--border); background:var(--surface-2); padding:1rem; transition:transform var(--transition-smooth), box-shadow var(--transition-smooth);}
+  .cascata-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-glow);}
+  .cascata-final{margin-top:.75rem; display:flex; flex-wrap:wrap; gap:.375rem; align-items:center;}
+  .ball-extra{border:1.5px dashed var(--accent-lotofacil); background:transparent !important; color:var(--accent-lotofacil) !important;}
+  .toggle-row{display:flex; align-items:center; gap:.5rem; font-size:.8125rem; color:var(--muted-foreground);}
+  .switch{position:relative; width:2.5rem; height:1.375rem; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .switch-track{position:absolute; inset:0; border-radius:9999px; background:var(--secondary); border:1px solid var(--border); transition:background-color .15s;}
+  .switch-thumb{position:absolute; top:2px; left:2px; width:1rem; height:1rem; border-radius:9999px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.25); transition:transform .15s, background-color .15s;}
+  .switch input:checked + .switch-track{background:var(--accent-lotofacil);}
+  .switch input:checked + .switch-track .switch-thumb{transform:translateX(1.125rem);}
+  details.trilha-details{margin-top:.5rem;}
+  details.trilha-details summary{cursor:pointer; font-size:11px; color:var(--muted-foreground); text-transform:uppercase; letter-spacing:.05em;}
+  details.trilha-details summary:hover{color:var(--foreground);}
+
+  /* ---------- o que mudou ---------- */
+  .change-list{margin-top:1.25rem; display:flex; flex-direction:column; gap:1rem;}
+  .change-card{border-radius:.9rem; border:1px solid var(--border); background:var(--surface-2); padding:1.1rem 1.25rem;}
+  .change-card-head{display:flex; align-items:center; gap:.6rem;}
+  .change-icon{display:grid; place-items:center; flex-shrink:0; width:2.25rem; height:2.25rem; border-radius:.6rem; background-image:var(--gradient-primary); color:var(--primary-foreground);}
+  .change-card h4{font-size:.9375rem; font-weight:700;}
+  .change-card p{margin-top:.5rem; font-size:.875rem; line-height:1.6; color:var(--muted-foreground);}
+  .change-card ul{margin:.6rem 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:.45rem; font-size:.8125rem; color:var(--foreground);}
+  .change-card li{display:flex; gap:.5rem; align-items:flex-start; line-height:1.5;}
+  .change-tag{display:inline-block; margin-top:.15rem; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; border-radius:9999px; padding:.2rem .6rem; background:var(--secondary); color:var(--secondary-foreground);}
+  .change-before-after{margin-top:.6rem; display:grid; grid-template-columns:1fr; gap:.5rem;}
+  @media (min-width:640px){ .change-before-after{grid-template-columns:1fr 1fr;} }
+  .ba-box{border-radius:.6rem; padding:.65rem .8rem; font-size:.8125rem; line-height:1.5;}
+  .ba-before{background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25);}
+  .ba-after{background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25);}
+  .ba-label{display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.25rem;}
+  .ba-before .ba-label{color:#f87171;}
+  .ba-after .ba-label{color:#34d399;}
+
+  /* ---------- home page ---------- */
+  #viewInicio{padding:1rem;}
+  @media (min-width:640px){ #viewInicio{padding:2rem;} }
+  #viewInicio > * + *{margin-top:2rem;}
+  .home-hero{position:relative; overflow:hidden; border-radius:1.25rem; padding:2rem; background-image:var(--gradient-hero); color:#fff;}
+  @media (min-width:640px){ .home-hero{padding:3rem;} }
+  .home-hero-tag{display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.18em; background:rgba(255,255,255,0.16); padding:.35rem .85rem; border-radius:9999px;}
+  .home-hero h1{position:relative; margin-top:1rem; max-width:38rem; font-size:1.875rem; font-weight:700; line-height:1.18; color:#fff;}
+  @media (min-width:640px){ .home-hero h1{font-size:2.75rem;} }
+  .home-hero p{position:relative; margin-top:1rem; max-width:34rem; font-size:1rem; color:rgba(255,255,255,0.88); line-height:1.5;}
+  .home-hero-glow{position:absolute; right:-6rem; top:-8rem; width:24rem; height:24rem; border-radius:9999px; background:#fff; opacity:.15; filter:blur(80px);}
+
+  .section-title{display:flex; align-items:center; gap:.625rem; font-size:1.25rem; font-weight:700;}
+  .section-title .dotpulse{width:.5rem; height:.5rem; border-radius:9999px; background:var(--destructive); flex-shrink:0;}
+
+  .jackpot-grid{margin-top:1rem; display:grid; grid-template-columns:repeat(2,1fr); gap:1rem;}
+  @media (min-width:768px){ .jackpot-grid{grid-template-columns:repeat(3,1fr);} }
+  @media (min-width:1200px){ .jackpot-grid{grid-template-columns:repeat(5,1fr);} }
+  .jackpot-card{background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 90%, #fff 10%), var(--surface));
+    border:1px solid var(--border); border-radius:1.125rem; padding:1.1rem; box-shadow:var(--shadow-panel);
+    transition:transform var(--transition-smooth), box-shadow var(--transition-smooth);}
+  .jackpot-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-glow);}
+  .jackpot-card-top{display:flex; align-items:center; justify-content:space-between; gap:.5rem;}
+  .jackpot-name{font-size:.875rem; font-weight:700;}
+  .jackpot-status{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:.2rem .55rem; border-radius:9999px; white-space:nowrap;}
+  .jackpot-status.acumulou{background:rgba(248,113,113,0.16); color:#fca5a5;}
+  .jackpot-status.normal{background:rgba(52,211,153,0.16); color:#6ee7b7;}
+  .jackpot-status.loading{background:var(--secondary); color:var(--muted-foreground);}
+  .jackpot-valor{margin-top:.6rem; font-family:"Space Grotesk"; font-size:1.375rem; font-weight:700; font-variant-numeric:tabular-nums;}
+  .jackpot-concurso{margin-top:.2rem; font-size:11.5px; color:var(--muted-foreground);}
+  .jackpot-label{margin-top:.55rem; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted-foreground);}
+  .jackpot-info{margin-top:.5rem; padding-top:.5rem; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:.25rem;}
+  .jackpot-info-row{display:flex; align-items:baseline; justify-content:space-between; gap:.5rem; font-size:11.5px;}
+  .jackpot-info-row span:first-child{color:var(--muted-foreground);}
+  .jackpot-info-row span:last-child{font-weight:700; font-variant-numeric:tabular-nums; text-align:right;}
+  .jackpot-info-row.sub span:last-child{font-weight:600; font-size:11px;}
+  .jackpot-link{margin-top:.6rem; display:inline-flex; align-items:center; gap:.25rem; font-size:11.5px; font-weight:600; color:var(--primary); text-decoration:none;}
+  .jackpot-link:hover{text-decoration:underline;}
+
+  .modality-grid{margin-top:1rem; display:grid; grid-template-columns:1fr; gap:1rem;}
+  @media (min-width:640px){ .modality-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (min-width:1200px){ .modality-grid{grid-template-columns:repeat(5,1fr);} }
+  .modality-card{background:var(--surface); border:1px solid var(--border); border-top:4px solid var(--accent); border-radius:1rem; padding:1.25rem; box-shadow:var(--shadow-panel); display:flex; flex-direction:column; transition:transform var(--transition-smooth), box-shadow var(--transition-smooth);}
+  .modality-card:hover{transform:translateY(-4px); box-shadow:var(--shadow-glow);}
+  .modality-card-top{display:flex; align-items:center; justify-content:space-between; gap:.5rem;}
+  .modality-pill{font-size:.8125rem; font-weight:700; padding:.3rem .75rem; border-radius:9999px; background:color-mix(in oklab, var(--accent) 22%, var(--surface-2)); color:var(--accent);}
+  .modality-dot{display:grid; place-items:center; width:2.75rem; height:2.75rem; border-radius:9999px; background:var(--accent); color:var(--on-accent); font-family:"Space Grotesk"; font-size:1rem; font-weight:700; font-variant-numeric:tabular-nums; box-shadow:0 8px 18px -10px rgba(0,0,0,.8);}
+  .modality-card p{margin-top:.9rem; font-size:.8125rem; color:var(--muted-foreground); line-height:1.5; flex:1;}
+  .modality-card .btn{margin-top:1.1rem; background:var(--accent); color:#fff;}
+  .modality-card .btn:hover{filter:brightness(0.92);}
+
+  .quickpick-panel{border-radius:1.25rem; background:var(--surface); border:1px solid var(--border); color:#fff; padding:1.75rem;}
+  @media (min-width:640px){ .quickpick-panel{padding:2.25rem;} }
+  .quickpick-panel h2{font-size:1.375rem; font-weight:700; display:flex; align-items:center; gap:.5rem;}
+  .quickpick-panel > p{margin-top:.5rem; font-size:.875rem; color:rgba(255,255,255,0.65); max-width:34rem;}
+  .quickpick-btns{margin-top:1.5rem; display:flex; flex-wrap:wrap; gap:.75rem;}
+  .quickpick-btn{border:none; border-radius:.625rem; padding:.7rem 1.1rem; font-size:.875rem; font-weight:700; color:#fff; transition:filter var(--transition-smooth), transform var(--transition-smooth);}
+  .quickpick-btn:hover{filter:brightness(1.1); transform:translateY(-2px);}
+  .quickpick-result{margin-top:1.5rem; border-radius:.875rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); padding:1rem 1.25rem; display:none;}
+  .quickpick-result.show{display:block;}
+  .quickpick-result-head{display:flex; align-items:center; justify-content:space-between; gap:.5rem; font-size:.8125rem; color:rgba(255,255,255,0.65);}
+  .quickpick-balls{margin-top:.75rem; display:flex; flex-wrap:wrap; gap:.4rem;}
+</style>
+</head>
+<body>
+<style>
+  .lock-wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1.5rem; background:radial-gradient(circle at 50% 0%, #1c1e3a 0%, var(--background) 60%);}
+  .lock-card{width:100%; max-width:26rem; background:var(--surface); border:1px solid var(--border); border-radius:1rem; padding:2rem 1.75rem; box-shadow:var(--shadow-panel); text-align:center;}
+  .lock-icon{width:3rem; height:3rem; margin:0 auto 1rem; border-radius:9999px; background:var(--gradient-primary); display:flex; align-items:center; justify-content:center;}
+  .lock-icon svg{width:1.5rem; height:1.5rem; color:#fff;}
+  .lock-title{font-family:"Space Grotesk"; font-weight:700; font-size:1.25rem; color:var(--foreground);}
+  .lock-sub{margin-top:.4rem; font-size:.8125rem; color:var(--muted-foreground); line-height:1.5;}
+  .lock-form{margin-top:1.5rem; display:flex; flex-direction:column; gap:.75rem;}
+  .lock-input{width:100%; height:2.75rem; border-radius:.6rem; border:1px solid var(--input); background:var(--surface-2); color:var(--foreground); padding:0 .9rem; font-size:.9rem; outline:none; box-sizing:border-box;}
+  .lock-input:focus{border-color:var(--ring); box-shadow:0 0 0 3px rgba(99,102,241,.25);}
+  .lock-btn{height:2.75rem; border-radius:.6rem; border:none; background:var(--gradient-primary); color:#fff; font-weight:600; font-size:.9rem; cursor:pointer; transition:opacity .2s;}
+  .lock-btn:disabled{opacity:.6; cursor:default;}
+  .lock-btn:not(:disabled):hover{opacity:.92;}
+  .lock-err{display:none; margin-top:-.25rem; font-size:.78rem; color:var(--destructive); text-align:left;}
+  .lock-foot{margin-top:1.5rem; padding-top:1rem; border-top:1px dashed var(--border); font-size:11px; color:var(--muted-foreground); line-height:1.5;}
+  .lock-foot strong{color:var(--foreground);}
+</style>
+
+<div id="lockScreen" class="lock-wrap">
+  <div class="lock-card">
+    <div class="lock-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <p class="lock-title">LotoMetrics Pro IA</p>
+    <p class="lock-sub">Informe a senha de acesso. Ela ficará salva neste navegador — você não precisará digitá-la novamente, a não ser que os dados do navegador sejam apagados.</p>
+    <form id="lockForm" class="lock-form">
+      <input id="lockPwd" class="lock-input" type="password" placeholder="Senha de acesso" autocomplete="off" required>
+      <p id="lockErr" class="lock-err">Senha incorreta. Tente novamente.</p>
+      <button id="lockBtn" type="submit" class="lock-btn">Entrar</button>
+    </form>
+    <div class="lock-foot">
+      🔒 Ferramenta de uso privado e restrito. É totalmente proibido o uso, a visualização ou a cópia — total ou parcial — deste aplicativo sem autorização expressa do seu autor, <strong>Paulo Sergio Martins Seguins</strong>.
+    </div>
+  </div>
+</div>
+
+<div id="appRoot" style="display:none;">
+
+
+<div id="viewInicio"></div>
+
+<div class="app" id="appShell" style="display:none;">
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-brand" id="sidebarBrand">
+        <span class="brand-badge">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>
+        </span>
+        <div style="min-width:0;">
+          <p style="font-family:'Space Grotesk'; font-weight:700; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">LotoMetrics Pro IA</p>
+          <p style="font-size:12px; color:var(--muted-foreground); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Gerador estatístico</p>
+        </div>
+      </div>
+      <button class="sidebar-close" id="sidebarCloseBtn" aria-label="Fechar menu">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+
+    <button class="nav-inicio" id="btnNavInicio" style="margin-top:1.25rem;">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Início
+    </button>
+
+    <p class="sidebar-label" style="margin-top:.5rem;">Modalidades</p>
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+
+    <p class="sidebar-label">Motores especiais</p>
+    <nav class="sidebar-nav" id="sidebarNavEspeciais"></nav>
+
+    <p class="sidebar-label">Ferramentas</p>
+    <nav class="sidebar-nav" id="sidebarNavFerramentas"></nav>
+
+    <p class="sidebar-label">Novidades</p>
+    <nav class="sidebar-nav" id="sidebarNavChangelog"></nav>
+
+    <div class="sidebar-footer">
+      Os filtros são estatísticos e não alteram a probabilidade oficial dos sorteios. Jogue com responsabilidade.
+    </div>
+  </aside>
+
+  <div class="main-wrap">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" id="menuBtn" aria-label="Abrir menu">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/></svg>
+        </button>
+        <div class="topbar-title" style="min-width:0;">
+          <p>Modalidade ativa</p>
+          <h1 id="tituloLoteria">Mega-Sena</h1>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" id="btnCopiar" disabled>
+          <svg class="icon" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span class="btn-hide-label">Copiar</span>
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btnPdf" disabled>
+          <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="btn-hide-label">PDF</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <div id="viewPadrao">
+      <section class="hero">
+        <div class="hero-glow" id="heroGlow"></div>
+        <p class="hero-eyebrow">Gerador estatístico</p>
+        <h2>Jogos mais equilibrados com filtros matemáticos aplicados</h2>
+        <p>Soma controlada, limite de sequências e cruzamento com o concurso anterior — tudo em um único painel.</p>
+
+        <dl class="stat-grid" id="statGrid"></dl>
+      </section>
+
+      <div class="grid-cols">
+        <section class="panel panel-fit">
+          <h3>Parâmetros de geração</h3>
+
+          <div class="stack">
+            <div class="field">
+              <label for="qtd" class="field-label">Quantidade de jogos</label>
+              <input id="qtd" type="number" min="1" max="50" value="5" class="input input-h">
+            </div>
+
+            <div class="field">
+              <span class="field-label">Concurso anterior</span>
+              <div class="row-wrap">
+                <input id="numConcurso" placeholder="Nº do concurso" class="input concurso-input" style="height:2.5rem;">
+                <select id="sorteioDupla" class="select" style="height:2.5rem; display:none;">
+                  <option value="1">1º sorteio</option>
+                  <option value="2">2º sorteio</option>
+                </select>
+                <button class="btn btn-secondary flex-1" id="btnBuscar" style="height:2.5rem;">
+                  <svg class="icon" id="iconBuscar" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                  Buscar resultado
+                </button>
+              </div>
+              <textarea id="anteriorTexto" rows="2" placeholder="Ou digite as dezenas: 04, 17, 22..." class="textarea input" style="margin-top:.5rem; font-size:.875rem;"></textarea>
+              <p id="labelConcurso" class="concurso-label" style="display:none;"></p>
+            </div>
+
+            <div class="field" id="campoEspelhar" style="display:none;">
+              <div class="toggle-row">
+                <label class="switch">
+                  <input type="checkbox" id="chkEspelhar">
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </label>
+                <span>Espelhar jogos (joga também as 50 dezenas que ficaram de fora)</span>
+              </div>
+            </div>
+
+            <div class="criterios-box">
+              <p>Critérios aplicados</p>
+              <ul id="listaCriterios"></ul>
+            </div>
+
+            <button class="btn btn-primary btn-full" id="btnGerar">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2 11 5"/></svg>
+              Gerar jogos
+            </button>
+          </div>
+        </section>
+
+        <section class="panel" style="display:flex; min-height:420px; flex-direction:column;">
+          <div class="results-head">
+            <h3>Jogos gerados</h3>
+            <div class="jogo-meta">
+              <span class="badge-count" id="qtdJogosBadge">0 jogos</span>
+              <button class="btn btn-ghost btn-sm" id="btnLimpar" disabled style="padding:.5rem;">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="conferir-box">
+            <input id="resultadoOficial" placeholder="Dezenas sorteadas para conferência" class="input flex-1" style="height:2.5rem;">
+            <button class="btn btn-secondary" id="btnConferir" style="height:2.5rem;">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              Conferir
+            </button>
+          </div>
+
+          <div id="emptyState" class="empty-state">
+            <span class="empty-icon">
+              <svg class="icon" style="width:1.5rem;height:1.5rem;" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/></svg>
+            </span>
+            <p>Nenhum jogo ainda</p>
+            <p>Ajuste os parâmetros ao lado e gere sua primeira combinação filtrada.</p>
+          </div>
+
+          <ul id="jogosList" class="jogos-list" style="display:none;"></ul>
+        </section>
+      </div>
+      </div>
+
+      <div id="viewCascata" style="display:none;">
+        <section class="hero">
+          <div class="hero-glow" style="background-color:var(--accent-lotofacil);"></div>
+          <p class="hero-eyebrow">Motor especial · Cascata fixa</p>
+          <h2>Lotofácil em cascata: 23 → 21 → 20 → 19 → 18 → 17 → 15</h2>
+          <p>As mesmas tabelas fixas da sua planilha, encadeadas por subconjunto válido e redistribuídas por posição — não gera combinações novas, só percorre as opções já prontas. Escolha em qual etapa parar.</p>
+
+          <dl class="stat-grid">
+            <div class="stat-card"><dt>Tabelas de 23</dt><dd id="statTabelas23">3 ativas</dd></div>
+            <div class="stat-card"><dt>Padrões → 21</dt><dd>45</dd></div>
+            <div class="stat-card"><dt>Padrões → 19</dt><dd>5</dd></div>
+            <div class="stat-card"><dt>Padrões 17→15</dt><dd>27 × 16</dd></div>
+          </dl>
+        </section>
+
+        <div class="grid-cols">
+          <section class="panel panel-fit">
+            <h3>Gerar pela cascata</h3>
+            <div class="stack">
+              <div class="field">
+                <label for="qtdCascata" class="field-label">Quantidade de jogos</label>
+                <input id="qtdCascata" type="number" min="1" max="30" value="5" class="input input-h">
+              </div>
+
+              <div class="field">
+                <label for="tamanhoCascata" class="field-label">Tamanho do jogo final</label>
+                <select id="tamanhoCascata" class="select input-h">
+                  <option value="20">20 dezenas</option>
+                  <option value="19">19 dezenas</option>
+                  <option value="18">18 dezenas</option>
+                  <option value="17">17 dezenas</option>
+                  <option value="15" selected>15 dezenas (+ extra opcional)</option>
+                </select>
+              </div>
+
+              <div class="toggle-row" id="linhaChkExtra">
+                <label class="switch">
+                  <input type="checkbox" id="chkExtra" checked>
+                  <span class="switch-track"><span class="switch-thumb"></span></span>
+                </label>
+                <span>Incluir a dezena extra (jogo de 16 números)</span>
+              </div>
+
+              <div class="field">
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="chkCustom23">
+                    <span class="switch-track"><span class="switch-thumb"></span></span>
+                  </label>
+                  <span>Usar minhas próprias 23 dezenas</span>
+                </div>
+                <textarea id="custom23Texto" rows="2" placeholder="Digite exatamente 23 dezenas entre 1 e 25, ex: 01, 02, 03..." class="textarea input" style="margin-top:.5rem; font-size:.875rem; display:none;"></textarea>
+              </div>
+
+              <div class="criterios-box">
+                <p>Como funciona</p>
+                <ul id="listaComoFunciona" style="margin-top:.75rem; padding:0; list-style:none; display:flex; flex-direction:column; gap:.5rem; font-size:.875rem; color:var(--foreground);"></ul>
+              </div>
+
+              <button class="btn btn-primary btn-full" id="btnGerarCascata">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2 11 5"/></svg>
+                Gerar cascata
+              </button>
+            </div>
+          </section>
+
+          <section class="panel" style="display:flex; min-height:420px; flex-direction:column;">
+            <div class="results-head">
+              <h3>Jogos da cascata</h3>
+              <div class="jogo-meta">
+                <span class="badge-count" id="qtdCascataBadge">0 jogos</span>
+                <button class="btn btn-ghost btn-sm" id="btnLimparCascata" disabled style="padding:.5rem;">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="emptyStateCascata" class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" style="width:1.5rem;height:1.5rem;" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/></svg>
+              </span>
+              <p>Nenhuma cascata gerada ainda</p>
+              <p>Clique em "Gerar cascata" para percorrer as tabelas da planilha.</p>
+            </div>
+
+            <ul id="cascataList" class="jogos-list" style="display:none;"></ul>
+          </section>
+        </div>
+      </div>
+
+      <div id="viewCascataMS" style="display:none;">
+        <section class="hero">
+          <div class="hero-glow" style="background-color:var(--accent-megasena);"></div>
+          <p class="hero-eyebrow">Motor especial · Cascata fixa</p>
+          <h2>Mega-Sena em cascata: 45 → 30 → 21 → jogo</h2>
+          <p>As mesmas tabelas fixas da sua planilha (4 tabelas de 45, reduzidas por seleção de colunas até tabelas de 21), com sorteio final filtrado por 2 consecutivos, repetidas do concurso anterior e soma proporcional ao tamanho do jogo — a mesma lógica que você simulou, agora valendo de 6 a 15 dezenas por jogo.</p>
+
+          <dl class="stat-grid">
+            <div class="stat-card"><dt>Tabelas de 45</dt><dd>4 ativas</dd></div>
+            <div class="stat-card"><dt>Padrões → 30</dt><dd>5</dd></div>
+            <div class="stat-card"><dt>Padrões → 21</dt><dd>4</dd></div>
+            <div class="stat-card"><dt>Combinações na fila</dt><dd id="statCombosMS">80</dd></div>
+          </dl>
+        </section>
+
+        <div class="grid-cols">
+          <section class="panel panel-fit">
+            <h3>Gerar pela cascata</h3>
+            <div class="stack">
+              <div class="field">
+                <label for="qtdCascataMS" class="field-label">Quantidade de jogos</label>
+                <input id="qtdCascataMS" type="number" min="1" max="200" value="10" class="input input-h">
+              </div>
+
+              <div class="field">
+                <label for="tamanhoCascataMS" class="field-label">Quantidade de dezenas por jogo</label>
+                <select id="tamanhoCascataMS" class="select input-h">
+                  <option value="6" selected>6 dezenas</option>
+                  <option value="7">7 dezenas</option>
+                  <option value="8">8 dezenas</option>
+                  <option value="9">9 dezenas</option>
+                  <option value="10">10 dezenas</option>
+                  <option value="11">11 dezenas</option>
+                  <option value="12">12 dezenas</option>
+                  <option value="13">13 dezenas</option>
+                  <option value="14">14 dezenas</option>
+                  <option value="15">15 dezenas</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <span class="field-label">Concurso anterior</span>
+                <div class="row-wrap">
+                  <input id="numConcursoMS" placeholder="Nº do concurso" class="input concurso-input" style="height:2.5rem;">
+                  <button class="btn btn-secondary flex-1" id="btnBuscarMS" style="height:2.5rem;">
+                    <svg class="icon" id="iconBuscarMS" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    Buscar resultado
+                  </button>
+                </div>
+                <textarea id="anteriorCascataMS" rows="2" placeholder="Ou digite as dezenas: 04, 12, 23, 31, 45, 58" class="textarea input" style="margin-top:.5rem; font-size:.875rem;"></textarea>
+                <p id="labelConcursoMS" class="concurso-label" style="display:none;"></p>
+              </div>
+
+              <div class="criterios-box">
+                <p>Como funciona</p>
+                <ul style="margin-top:.75rem; padding:0; list-style:none; display:flex; flex-direction:column; gap:.5rem; font-size:.875rem; color:var(--foreground);">
+                  <li><span class="dot" style="background-color:var(--accent-megasena)"></span>Escolhe 1 das 4 tabelas de 45 dezenas</li>
+                  <li><span class="dot" style="background-color:var(--accent-megasena)"></span>Aplica 1 dos 5 padrões de colunas → 30 dezenas</li>
+                  <li><span class="dot" style="background-color:var(--accent-megasena)"></span>Aplica 1 dos 4 padrões de colunas → 21 dezenas</li>
+                  <li><span class="dot" style="background-color:var(--accent-megasena)"></span>Sorteia a quantidade de dezenas escolhida (6 a 15) dentro das 21, filtrando por 2 consecutivos, repetidas do anterior e soma proporcional ao tamanho do jogo</li>
+                  <li><span class="dot" style="background-color:var(--accent-megasena)"></span>Pedidos maiores avançam o cursor pra outras combinações de tabelas (cascata)</li>
+                </ul>
+              </div>
+
+              <button class="btn btn-primary btn-full" id="btnGerarCascataMS">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2 11 5"/></svg>
+                Gerar cascata
+              </button>
+            </div>
+          </section>
+
+          <section class="panel" style="display:flex; min-height:420px; flex-direction:column;">
+            <div class="results-head">
+              <h3>Jogos da cascata</h3>
+              <div class="jogo-meta">
+                <span class="badge-count" id="qtdCascataMSBadge">0 jogos</span>
+                <button class="btn btn-ghost btn-sm" id="btnLimparCascataMS" disabled style="padding:.5rem;">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="emptyStateCascataMS" class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" style="width:1.5rem;height:1.5rem;" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/></svg>
+              </span>
+              <p>Nenhuma cascata gerada ainda</p>
+              <p>Clique em "Gerar cascata" para percorrer as tabelas da planilha.</p>
+            </div>
+
+            <ul id="cascataMSList" class="jogos-list" style="display:none;"></ul>
+          </section>
+        </div>
+      </div>
+
+      <div id="viewCascataDS" style="display:none;">
+        <section class="hero">
+          <div class="hero-glow" style="background-color:var(--accent-duplasena);"></div>
+          <p class="hero-eyebrow">Motor especial · Cascata fixa</p>
+          <h2>Dupla Sena em cascata: 30 → 18 → jogo</h2>
+          <p>As 10 tabelas fixas de 30 dezenas da sua planilha (todas as combinações de 3 das 5 dezenas de 1 a 50), reduzidas por seleção de colunas até tabelas de 18 — de onde sai o jogo final, do tamanho que você escolher (6 a 12 dezenas, como a Dupla Sena permite apostar).</p>
+
+          <dl class="stat-grid">
+            <div class="stat-card"><dt>Tabelas de 30</dt><dd>10 ativas</dd></div>
+            <div class="stat-card"><dt>Padrões → 18</dt><dd>210</dd></div>
+            <div class="stat-card"><dt>Combinações na fila</dt><dd>2.100</dd></div>
+            <div class="stat-card"><dt>Dezenas por jogo</dt><dd id="statTamanhoDS">6</dd></div>
+          </dl>
+        </section>
+
+        <div class="grid-cols">
+          <section class="panel panel-fit">
+            <h3>Gerar pela cascata</h3>
+            <div class="stack">
+              <div class="field">
+                <label for="qtdCascataDS" class="field-label">Quantidade de jogos</label>
+                <input id="qtdCascataDS" type="number" min="1" max="200" value="10" class="input input-h">
+              </div>
+
+              <div class="field">
+                <label for="tamanhoCascataDS" class="field-label">Quantidade de dezenas por jogo</label>
+                <select id="tamanhoCascataDS" class="select input-h">
+                  <option value="6" selected>6 dezenas</option>
+                  <option value="7">7 dezenas</option>
+                  <option value="8">8 dezenas</option>
+                  <option value="9">9 dezenas</option>
+                  <option value="10">10 dezenas</option>
+                  <option value="11">11 dezenas</option>
+                  <option value="12">12 dezenas</option>
+                </select>
+              </div>
+
+              <div class="criterios-box">
+                <p>Como funciona</p>
+                <ul style="margin-top:.75rem; padding:0; list-style:none; display:flex; flex-direction:column; gap:.5rem; font-size:.875rem; color:var(--foreground);">
+                  <li><span class="dot" style="background-color:var(--accent-duplasena)"></span>Escolhe 1 das 10 tabelas de 30 dezenas (combinações de 3 das 5 dezenas de 1-50)</li>
+                  <li><span class="dot" style="background-color:var(--accent-duplasena)"></span>Aplica 1 dos 210 padrões de colunas → 18 dezenas</li>
+                  <li><span class="dot" style="background-color:var(--accent-duplasena)"></span>Sorteia a quantidade de dezenas escolhida (6 a 12) dentro das 18, filtrando por no máximo 2 consecutivas</li>
+                  <li><span class="dot" style="background-color:var(--accent-duplasena)"></span>Pedidos maiores avançam o cursor pra outras combinações de tabelas (cascata)</li>
+                </ul>
+              </div>
+
+              <button class="btn btn-primary btn-full" id="btnGerarCascataDS">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2 11 5"/></svg>
+                Gerar cascata
+              </button>
+            </div>
+          </section>
+
+          <section class="panel" style="display:flex; min-height:420px; flex-direction:column;">
+            <div class="results-head">
+              <h3>Jogos da cascata</h3>
+              <div class="jogo-meta">
+                <span class="badge-count" id="qtdCascataDSBadge">0 jogos</span>
+                <button class="btn btn-ghost btn-sm" id="btnLimparCascataDS" disabled style="padding:.5rem;">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="emptyStateCascataDS" class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" style="width:1.5rem;height:1.5rem;" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/></svg>
+              </span>
+              <p>Nenhuma cascata gerada ainda</p>
+              <p>Clique em "Gerar cascata" para percorrer as tabelas da planilha.</p>
+            </div>
+
+            <ul id="cascataDSList" class="jogos-list" style="display:none;"></ul>
+          </section>
+        </div>
+      </div>
+
+      <div id="viewConferidor" style="display:none;">
+        <section class="hero">
+          <div class="hero-glow" id="heroGlowConferidor"></div>
+          <p class="hero-eyebrow">Ferramenta · Conferidor universal</p>
+          <h2>Confira jogos de qualquer modalidade em um só lugar</h2>
+          <p>Cole os jogos que você exportou (Copiar) ou importe o arquivo .txt/.pdf, escolha a modalidade e informe o resultado oficial. Não precisa de uma aba separada para cada loteria.</p>
+
+          <dl class="stat-grid">
+            <div class="stat-card"><dt>Jogos importados</dt><dd id="statConferidorQtd">0</dd></div>
+          </dl>
+        </section>
+
+        <div class="grid-cols">
+          <section class="panel panel-fit">
+            <h3>Importar jogos</h3>
+            <div class="stack">
+              <div class="field">
+                <label for="conferidorLoteria" class="field-label">Modalidade</label>
+                <select id="conferidorLoteria" class="select input-h"></select>
+              </div>
+
+              <div class="field">
+                <span class="field-label">Colar jogos (um por linha)</span>
+                <textarea id="conferidorTexto" rows="6" placeholder="Cole aqui os jogos exportados, um por linha. Ex.: 02 05 09 13 17 21..." class="textarea input"></textarea>
+
+                <input type="file" id="conferidorFileInput" accept=".txt,.csv,.pdf" style="display:none;">
+                <button class="btn btn-secondary btn-full" id="btnImportarArquivo" style="height:2.5rem; margin-top:.5rem;">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Importar arquivo (.txt ou .pdf)
+                </button>
+
+                <button class="btn btn-primary btn-full" id="btnAdicionarJogos" style="margin-top:.5rem;">
+                  Adicionar à lista
+                </button>
+              </div>
+
+              <div class="field">
+                <span class="field-label">Resultado oficial para conferência</span>
+                <div class="row-wrap">
+                  <input id="conferidorNumConcurso" placeholder="Nº do concurso" class="input concurso-input" style="height:2.5rem;">
+                  <select id="conferidorSorteioDupla" class="select" style="height:2.5rem; display:none;">
+                    <option value="1">1º sorteio</option>
+                    <option value="2">2º sorteio</option>
+                  </select>
+                  <button class="btn btn-secondary flex-1" id="btnBuscarConferidor" style="height:2.5rem;">
+                    <svg class="icon" id="iconBuscarConferidor" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    Buscar resultado
+                  </button>
+                </div>
+                <input id="conferidorOficial" placeholder="Ou digite as dezenas sorteadas" class="input" style="height:2.5rem; margin-top:.5rem;">
+                <p id="labelConcursoConferidor" class="concurso-label" style="display:none;"></p>
+              </div>
+
+              <button class="btn btn-primary btn-full" id="btnConferirTodos">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                Conferir todos
+              </button>
+            </div>
+          </section>
+
+          <section class="panel" style="display:flex; min-height:420px; flex-direction:column;">
+            <div class="results-head">
+              <h3>Jogos importados</h3>
+              <div class="jogo-meta">
+                <span class="badge-count" id="qtdConferidorBadge">0 jogos</span>
+                <button class="btn btn-ghost btn-sm" id="btnLimparConferidor" disabled style="padding:.5rem;">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="emptyStateConferidor" class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" style="width:1.5rem;height:1.5rem;" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/></svg>
+              </span>
+              <p>Nenhum jogo importado ainda</p>
+              <p>Cole os jogos ou importe um arquivo .txt/.pdf exportado por qualquer modalidade do app.</p>
+            </div>
+
+            <ul id="conferidorList" class="jogos-list" style="display:none;"></ul>
+          </section>
+        </div>
+      </div>
+
+      <div id="viewChangelog" style="display:none;">
+        <section class="hero">
+          <div class="hero-glow" style="background-color:var(--accent-lotomania);"></div>
+          <p class="hero-eyebrow">Novidades desta versão</p>
+          <h2>O que mudou no LotoMetrics Pro IA</h2>
+          <p>Um resumo direto do que foi ajustado por baixo do capô e do que você vai sentir na prática ao usar o aplicativo — sem termos técnicos complicados.</p>
+        </section>
+
+        <section class="panel" style="margin-top:1.5rem;">
+          <h3>1. Filtros agora rodam direto no motor — de forma 100% automática</h3>
+          <p style="margin-top:.5rem; font-size:.875rem; color:var(--muted-foreground); line-height:1.6;">
+            Antes, os critérios de cada loteria (soma, ímpares, consecutivos, repetidas do concurso anterior etc.) passavam por etapas intermediárias até chegar ao resultado final. Agora esses filtros foram embutidos diretamente dentro do motor de geração (engine) de cada modalidade. Isso significa que, no instante em que você clica em "Gerar jogos", o próprio motor já aplica e valida todos os critérios ao mesmo tempo, sem passos extras, sem intervenção manual e sem risco de um jogo "escapar" sem passar pelo filtro.
+          </p>
+          <div class="change-before-after">
+            <div class="ba-box ba-before">
+              <span class="ba-label">Como era</span>
+              Geração e aplicação de filtros em etapas separadas, exigindo conferência adicional para garantir que os critérios haviam sido respeitados.
+            </div>
+            <div class="ba-box ba-after">
+              <span class="ba-label">Como é agora</span>
+              O motor de cada loteria já nasce com os filtros embutidos: todo jogo gerado sai validado, na hora, direto do engine.
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" style="margin-top:1.5rem;">
+          <h3>2. Resultados das loterias: de manual para automático</h3>
+          <p style="margin-top:.5rem; font-size:.875rem; color:var(--muted-foreground); line-height:1.6;">
+            Anteriormente, para conferir o valor do próximo prêmio, o número do concurso ou as dezenas do sorteio anterior, era preciso buscar essa informação manualmente e atualizar o aplicativo por fora. Agora essa etapa foi eliminada: o LotoMetrics Pro IA consulta sozinho, em tempo real, a API oficial da Caixa (com uma fonte alternativa de segurança caso a primeira esteja fora do ar) e já exibe o valor estimado, o número do próximo concurso e se o prêmio acumulou — tudo isso assim que você abre a tela inicial ou clica em "Buscar resultado".
+          </p>
+          <div class="change-before-after">
+            <div class="ba-box ba-before">
+              <span class="ba-label">Como era</span>
+              Atualização manual: era preciso conferir e digitar os dados do concurso por conta própria.
+            </div>
+            <div class="ba-box ba-after">
+              <span class="ba-label">Como é agora</span>
+              Busca automática dos resultados e valores estimados direto da fonte oficial, com atualização instantânea na tela.
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" style="margin-top:1.5rem;">
+          <h3>3. Design mais simples e intuitivo</h3>
+          <p style="margin-top:.5rem; font-size:.875rem; color:var(--muted-foreground); line-height:1.6;">
+            A interface foi reorganizada para reduzir cliques e deixar o caminho mais óbvio: uma tela inicial mostra todas as modalidades e o status dos próximos concursos de forma visual, o menu lateral concentra o acesso rápido a cada loteria e aos motores especiais, e o painel de geração ficou mais enxuto, com os critérios aplicados sempre visíveis ao lado dos jogos gerados. O objetivo foi simplificar a navegação sem esconder informação — você vê o que está sendo aplicado, sem precisar caçar essa informação em menus escondidos.
+          </p>
+          <ul style="margin-top:.75rem; padding:0; list-style:none; display:flex; flex-direction:column; gap:.5rem; font-size:.8125rem; color:var(--foreground);">
+            <li><span class="dot" style="background-color:var(--accent-lotomania); margin-top:.4rem;"></span>Tela inicial única com todas as modalidades e o status dos concursos, sem precisar navegar entre páginas.</li>
+            <li><span class="dot" style="background-color:var(--accent-lotomania); margin-top:.4rem;"></span>Menu lateral fixo com acesso direto a cada loteria e aos motores especiais (como a Cascata da Lotofácil).</li>
+            <li><span class="dot" style="background-color:var(--accent-lotomania); margin-top:.4rem;"></span>Critérios aplicados sempre visíveis ao lado do gerador, para você saber exatamente o que está sendo filtrado.</li>
+            <li><span class="dot" style="background-color:var(--accent-lotomania); margin-top:.4rem;"></span>Palpite rápido na tela inicial, para quem quer uma sugestão instantânea sem abrir o gerador completo.</li>
+          </ul>
+        </section>
+
+        <section class="criterios-box" style="margin-top:1.5rem;">
+          <p>Resumo em uma frase</p>
+          <ul>
+            <li><span class="dot" style="background-color:var(--accent-megasena);"></span>Menos passos manuais, mais automação: os filtros são aplicados pelo motor no instante da geração e os resultados das loterias chegam sozinhos, direto da fonte oficial — tudo em uma interface mais limpa e fácil de usar.</li>
+          </ul>
+        </section>
+      </div>
+
+      <footer class="foot">
+        LotoMetrics Pro IA · Os filtros são estatisticos e não alteram os resultados ou as probabilidades oficiais das loterias da caixa econômica federal. Jogue com responsabilidade — proibido para menores de 18 anos.
+        <div class="foot-credit">
+          <p class="foot-credit-title"><span class="brand-loto">Loto</span><span class="brand-pro">libre</span> <span class="brand-tagline">Pro IA</span> — Ferramenta Privada</p>
+          <p class="foot-credit-sub">Autor intelectual: <strong>Paulo Sergio M. Seguins</strong> &nbsp;|&nbsp; © 2026 · Todos os direitos reservados</p>
+          <p class="foot-privado">🔒 Ferramenta de uso privado e restrito. É totalmente proibido o uso, a visualização ou a cópia — total ou parcial — deste aplicativo sem autorização expressa do seu autor, <strong>Paulo Sergio Martins Seguins</strong>.</p>
+        </div>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ============ Configuração das loterias (portado de src/lib/lottery.ts) ============ */
+const LOTERIAS = {
+  megasena: {
+    key: "megasena", nome: "Mega-Sena", badge: "MS", apiEndpoint: "megasena",
+    dezenasPorJogo: 6, minNumero: 1, maxNumero: 60,
+    maxConsecutivos: 2, maxRepetidosAnterior: 2,
+    somaMin: 120, somaMax: 240, accent: "var(--accent-megasena)",
+  },
+  lotofacil: {
+    key: "lotofacil", nome: "Lotofácil", badge: "LF", apiEndpoint: "lotofacil",
+    dezenasPorJogo: 15, minNumero: 1, maxNumero: 25,
+    imparesMin: 6, imparesMax: 9,
+    naoSorteadosMin: 4, naoSorteadosMax: 7,
+    sorteadosAnteriorMin: 8, sorteadosAnteriorMax: 11,
+    somaMin: 160, somaMax: 220, accent: "var(--accent-lotofacil)",
+  },
+  duplasena: {
+    key: "duplasena", nome: "Dupla Sena", badge: "DS", apiEndpoint: "duplasena",
+    dezenasPorJogo: 6, minNumero: 1, maxNumero: 50,
+    maxConsecutivos: 2, maxRepetidosAnterior: 2,
+    somaMin: 100, somaMax: 210, accent: "var(--accent-duplasena)",
+  },
+  lotomania: {
+    key: "lotomania", nome: "Lotomania", badge: "LM", apiEndpoint: "lotomania",
+    dezenasPorJogo: 50, minNumero: 0, maxNumero: 99,
+    maxConsecutivos: 3, maxRepetidosAnterior: 4,
+    somaMin: 2200, somaMax: 2750, accent: "var(--accent-lotomania)",
+  },
+  diadesorte: {
+    key: "diadesorte", nome: "Dia de Sorte", badge: "DI", apiEndpoint: "diadesorte",
+    dezenasPorJogo: 7, minNumero: 1, maxNumero: 31,
+    maxConsecutivos: 2, maxRepetidosAnterior: 3,
+    somaMin: 80, somaMax: 140, accent: "var(--accent-diadesorte)",
+  },
+};
+const LOTERIA_KEYS = Object.keys(LOTERIAS);
+
+// Página oficial de cada modalidade no Portal Loterias da Caixa — usada no link "Mais detalhes"
+const URL_DETALHES_CAIXA = {
+  megasena: "https://loterias.caixa.gov.br/Paginas/Mega-Sena.aspx",
+  lotofacil: "https://loterias.caixa.gov.br/Paginas/Lotofacil.aspx",
+  duplasena: "https://loterias.caixa.gov.br/Paginas/Dupla-Sena.aspx",
+  lotomania: "https://loterias.caixa.gov.br/Paginas/Lotomania.aspx",
+  diadesorte: "https://loterias.caixa.gov.br/Paginas/Dia-de-Sorte.aspx",
+};
+
+/* ============ Página Início ============ */
+const DESCRICAO_HOME = {
+  megasena: "Gere jogos de 6 dezenas com filtros de soma e dezenas consecutivas.",
+  lotofacil: "Filtros de ímpares, repetidas e ausentes do concurso anterior — ou use a Cascata fiel à sua planilha.",
+  duplasena: "Duas chances de ganhar. Filtros aplicados ao 1º ou 2º sorteio.",
+  lotomania: "Gere 50 dezenas equilibradas com filtros de soma e sequência.",
+  diadesorte: "Gere 7 dezenas com filtros de soma e sequência inteligentes.",
+};
+
+function formatarMoeda(valor){
+  if(valor == null || isNaN(valor)) return "—";
+  if(valor >= 1e6) return "R$ " + (valor/1e6).toFixed(1) + " Mi";
+  if(valor >= 1e3) return "R$ " + (valor/1e3).toFixed(0) + " mil";
+  return "R$ " + valor.toFixed(2).replace(".", ",");
+}
+
+function formatarMoedaExata(valor){
+  if(valor == null || isNaN(valor)) return "—";
+  return valor.toLocaleString("pt-BR", { style:"currency", currency:"BRL", minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+/* ============ Camada de acesso às APIs de resultados ============
+   IMPORTANTE: o endpoint "último concurso" da Caixa
+   (…/portaldeloterias/api/<loteria>) é servido por um cache de borda que
+   frequentemente devolve o concurso ANTERIOR (fica 1 sorteio atrasado).
+   Por isso não basta chamá-lo: precisamos avançar pedindo os concursos
+   seguintes por número explícito (que não são cacheados) e também comparar
+   com a API espelho, ficando sempre com o concurso mais recente. */
+const API_CAIXA = "https://servicebus2.caixa.gov.br/portaldeloterias/api";
+const API_ESPELHO = "https://loteriascaixa-api.herokuapp.com/api";
+
+function payloadValido(d){
+  if(!d || typeof d !== "object") return false;
+  if(d.exceptionMessage || d.errorMessage) return false;
+  const dz = d.listaDezenas ?? d.dezenas ?? d.listaDezenasSegundoSorteio ?? d.dezenas2;
+  return Array.isArray(dz) && dz.length > 0;
+}
+
+async function fetchJsonLoteria(url){
+  try {
+    const r = await fetch(url, { cache: "no-store" });
+    if(!r.ok) return null;
+    const d = await r.json();
+    return payloadValido(d) ? d : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function numeroDoPayload(d){
+  const n = Number(d?.numero ?? d?.concurso);
+  return isNaN(n) ? -1 : n;
+}
+
+/* Busca o payload de um concurso. Sem número => último concurso REAL. */
+async function buscarPayloadConcurso(conf, numero){
+  const ep = conf.apiEndpoint;
+  const num = (numero == null ? "" : String(numero)).trim();
+  const cb = () => `?_=${Date.now()}${Math.random().toString(36).slice(2)}`;
+
+  if(num){
+    return await fetchJsonLoteria(`${API_CAIXA}/${ep}/${num}${cb()}`)
+        ?? await fetchJsonLoteria(`${API_ESPELHO}/${ep}/${num}`);
+  }
+
+  let melhor = await fetchJsonLoteria(`${API_CAIXA}/${ep}${cb()}`);
+
+  // Avança sobre o cache desatualizado: tenta os concursos seguintes por número.
+  let proximo = melhor ? (Number(melhor.numeroConcursoProximo) || numeroDoPayload(melhor) + 1) : null;
+  for(let i = 0; i < 4 && proximo > 0; i++){
+    const d = await fetchJsonLoteria(`${API_CAIXA}/${ep}/${proximo}${cb()}`);
+    if(!d) break;
+    melhor = d;
+    proximo = Number(d.numeroConcursoProximo) || numeroDoPayload(d) + 1;
+  }
+
+  // Compara com a API espelho e mantém o concurso mais recente.
+  const espelho = await fetchJsonLoteria(`${API_ESPELHO}/${ep}/latest`);
+  if(espelho && numeroDoPayload(espelho) > numeroDoPayload(melhor)) melhor = espelho;
+
+  return melhor;
+}
+
+async function buscarStatusConcurso(conf){
+  const data = await buscarPayloadConcurso(conf, null);
+  if(!data) return null;
+  const valor = data.valorEstimadoProximoConcurso ?? data.valorAcumuladoProximoConcurso ?? null;
+  const numeroProximo = data.numeroConcursoProximo ?? (data.numero != null ? data.numero + 1 : null);
+  const numeroAtual = data.numero ?? data.concurso ?? null;
+  const acumulou = data.acumulado === true;
+  const dataProximo = data.dataProximoConcurso ?? null;
+
+  // Faixas de premiação do último concurso (ganhadores + valor por ganhador)
+  const faixas = data.listaRateioPremio ?? data.premiacoes ?? [];
+  function montarFaixa(item){
+    if(!item) return null;
+    return {
+      descricao: item.descricaoFaixa ?? item.descricao ?? "Faixa principal",
+      ganhadores: Number(item.numeroDeGanhadores ?? item.ganhadores ?? 0) || 0,
+      valorPorGanhador: item.valorPremio ?? null,
+    };
+  }
+  const faixa = Array.isArray(faixas) && faixas.length ? montarFaixa(faixas[0]) : null;
+  const segundaFaixa = Array.isArray(faixas) && faixas.length > 1 ? montarFaixa(faixas[1]) : null;
+  const ganhadoresPrincipal = faixa ? faixa.ganhadores : null;
+  return { valor, numeroProximo, numeroAtual, acumulou, faixa, segundaFaixa, ganhadoresPrincipal, dataProximo };
+}
+
+function renderInicio(){
+  const el = document.getElementById("viewInicio");
+  el.innerHTML = `
+    <nav class="navbar">
+      <div class="navbar-brand">
+        <span class="brand-badge">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>
+        </span>
+        <div>
+          <h1>LotoMetrics Pro IA</h1>
+          <p>Análises e gerador de jogos inteligentes</p>
+        </div>
+      </div>
+      <div class="navbar-tabs" id="navbarTabs"></div>
+    </nav>
+
+    <main id="viewInicioMain">
+      <section class="home-hero">
+        <div class="home-hero-glow"></div>
+        <span class="home-hero-tag">Tecnologia &amp; estatística</span>
+        <h1>Maximize suas chances com filtros matemáticos avançados</h1>
+        <p>A plataforma analisa o comportamento histórico das loterias da Caixa e gera combinações dentro dos padrões estatísticos mais prováveis — soma, sequência, repetidas do concurso anterior e mais.</p>
+      </section>
+
+      <section>
+        <h2 class="section-title"><span class="dotpulse"></span>Status dos Próximos Concursos</h2>
+        <div class="jackpot-grid" id="jackpotGrid"></div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Selecione uma Modalidade para Gerar Jogos</h2>
+        <div class="modality-grid" id="modalityGrid"></div>
+      </section>
+
+      <section class="quickpick-panel">
+        <h2>✨ Palpite Rápido do Dia</h2>
+        <p>Escolha uma loteria abaixo para obter uma sugestão instantânea — 1 jogo gerado na hora, sem precisar abrir o gerador completo.</p>
+        <div class="quickpick-btns" id="quickpickBtns"></div>
+        <div class="quickpick-result" id="quickpickResult"></div>
+      </section>
+
+      <footer class="foot" style="margin-top:2rem;">
+        LotoMetrics Pro IA · Os filtros são estatisticos e não alteram os resultados ou as probabilidades oficiais das loterias da caixa econômica federal. Jogue com responsabilidade — proibido para menores de 18 anos.
+        <div class="foot-credit">
+          <p class="foot-credit-title"><span class="brand-loto">Loto</span><span class="brand-pro">libre</span> <span class="brand-tagline">Pro IA</span> — Ferramenta Privada</p>
+          <p class="foot-credit-sub">Autor intelectual: <strong>Paulo Sergio M. Seguins</strong> &nbsp;|&nbsp; © 2026 · Todos os direitos reservados</p>
+          <p class="foot-privado">🔒 Ferramenta de uso privado e restrito. É totalmente proibido o uso, a visualização ou a cópia — total ou parcial — deste aplicativo sem autorização expressa do seu autor, <strong>Paulo Sergio Martins Seguins</strong>.</p>
+        </div>
+      </footer>
+    </main>
+  `;
+
+  // Abas de modalidade no topo
+  const navTabs = document.getElementById("navbarTabs");
+  navTabs.innerHTML = LOTERIA_KEYS.map(k => {
+    const c = LOTERIAS[k];
+    return `<button class="navbar-tab" style="--accent:${c.accent};" data-loteria="${k}">${c.nome}</button>`;
+  }).join("");
+  navTabs.querySelectorAll("button[data-loteria]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      mostrarApp();
+      trocarModo("padrao");
+      trocarLoteria(btn.dataset.loteria);
+    });
+  });
+
+  // Cards de modalidade
+  const modalityGrid = document.getElementById("modalityGrid");
+  modalityGrid.innerHTML = LOTERIA_KEYS.map(k => {
+    const c = LOTERIAS[k];
+    const totalDezenas = c.maxNumero - c.minNumero + 1;
+    return `
+      <div class="modality-card" style="--accent:${c.accent};">
+        <div class="modality-card-top">
+          <span class="modality-pill">${c.nome}</span>
+          <span class="modality-dot" title="Dezenas de ${pad(c.minNumero)} a ${pad(c.maxNumero)}">${totalDezenas}</span>
+        </div>
+        <p>${DESCRICAO_HOME[k] || ""}</p>
+        <button class="btn" data-loteria="${k}">Acessar Gerador</button>
+      </div>
+    `;
+  }).join("");
+  modalityGrid.querySelectorAll("button[data-loteria]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      mostrarApp();
+      trocarModo("padrao");
+      trocarLoteria(btn.dataset.loteria);
+    });
+  });
+
+  // Botões de palpite rápido
+  const quickBtns = document.getElementById("quickpickBtns");
+  quickBtns.innerHTML = LOTERIA_KEYS.map(k => {
+    const c = LOTERIAS[k];
+    return `<button class="quickpick-btn" style="background-color:${c.accent};" data-loteria="${k}">${c.nome}</button>`;
+  }).join("");
+  quickBtns.querySelectorAll("button[data-loteria]").forEach(btn => {
+    btn.addEventListener("click", () => gerarPalpiteRapido(btn.dataset.loteria));
+  });
+
+  // Cards de prêmio acumulado (placeholder até o fetch responder)
+  const jackpotGrid = document.getElementById("jackpotGrid");
+  jackpotGrid.innerHTML = LOTERIA_KEYS.map(k => {
+    const c = LOTERIAS[k];
+    return `
+      <div class="jackpot-card" id="jackpotCard-${k}">
+        <div class="jackpot-card-top">
+          <span class="jackpot-name">${c.nome}</span>
+          <span class="jackpot-status loading">...</span>
+        </div>
+        <div class="jackpot-label">Carregando</div>
+        <div class="jackpot-valor">—</div>
+        <div class="jackpot-concurso">Buscando...</div>
+        <div class="jackpot-info" style="display:none;"></div>
+        <a class="jackpot-link" href="${URL_DETALHES_CAIXA[k]}" target="_blank" rel="noopener noreferrer">
+          Mais detalhes
+          <svg class="icon" style="width:12px;height:12px;" viewBox="0 0 24 24"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+        </a>
+      </div>
+    `;
+  }).join("");
+
+  LOTERIA_KEYS.forEach(async (k) => {
+    const c = LOTERIAS[k];
+    const status = await buscarStatusConcurso(c);
+    const card = document.getElementById(`jackpotCard-${k}`);
+    if(!card) return;
+    if(!status || (status.valor == null && !status.faixa)){
+      card.querySelector(".jackpot-status").outerHTML = `<span class="jackpot-status loading">indisponível</span>`;
+      card.querySelector(".jackpot-valor").textContent = "—";
+      card.querySelector(".jackpot-concurso").textContent = "Não foi possível buscar agora";
+      return;
+    }
+    const acumulou = status.acumulou || status.ganhadoresPrincipal === 0;
+    card.querySelector(".jackpot-status").outerHTML = acumulou
+      ? `<span class="jackpot-status acumulou">Acumulou!</span>`
+      : `<span class="jackpot-status normal">Normal</span>`;
+    const info = card.querySelector(".jackpot-info");
+    const label = card.querySelector(".jackpot-label");
+
+    // Linhas comuns às duas situações: data prevista do próximo sorteio e a 2ª faixa
+    // de premiação (quantos acertaram a segunda colocação e quanto cada um levou).
+    const linhasComuns = [];
+    if(status.dataProximo){
+      linhasComuns.push(`<div class="jackpot-info-row"><span>Data prevista</span><span>${status.dataProximo}</span></div>`);
+    }
+    if(status.segundaFaixa){
+      const sf = status.segundaFaixa;
+      const qtdSf = sf.ganhadores ?? 0;
+      linhasComuns.push(`
+        <div class="jackpot-info-row sub"><span>${sf.descricao}</span><span>${qtdSf} ${qtdSf === 1 ? "ganhador" : "ganhadores"}</span></div>
+      `);
+      if(qtdSf > 0 && sf.valorPorGanhador != null){
+        linhasComuns.push(`<div class="jackpot-info-row sub"><span>Cada um levou</span><span>${formatarMoedaExata(sf.valorPorGanhador)}</span></div>`);
+      }
+    }
+
+    if(acumulou){
+      // ACUMULOU → destaque no valor do prêmio estimado para o próximo concurso
+      label.textContent = "Prêmio estimado";
+      card.querySelector(".jackpot-valor").textContent = formatarMoeda(status.valor);
+      card.querySelector(".jackpot-concurso").textContent = status.numeroProximo
+        ? `Próximo concurso #${status.numeroProximo}`
+        : "";
+      if(linhasComuns.length){
+        info.style.display = "";
+        info.innerHTML = linhasComuns.join("");
+      } else {
+        info.style.display = "none";
+        info.innerHTML = "";
+      }
+    } else {
+      // NORMAL → houve ganhador(es) na faixa principal: mostra quantos e quanto cada um levou
+      const g = status.ganhadoresPrincipal ?? 0;
+      const porGanhador = status.faixa ? status.faixa.valorPorGanhador : null;
+      const labelCadaUm = g === 1 ? "O ganhador levou" : "Cada um ganhou";
+      label.textContent = status.numeroAtual ? `Concurso #${status.numeroAtual} premiado` : "Concurso premiado";
+      card.querySelector(".jackpot-valor").textContent = `${g} ${g === 1 ? "ganhador" : "ganhadores"}`;
+      card.querySelector(".jackpot-concurso").textContent = status.faixa ? status.faixa.descricao : "Faixa principal";
+      info.style.display = "";
+      info.innerHTML = `
+        <div class="jackpot-info-row"><span>${labelCadaUm}</span><span>${formatarMoedaExata(porGanhador)}</span></div>
+        <div class="jackpot-info-row"><span>Próximo #${status.numeroProximo ?? "—"}</span><span>${formatarMoeda(status.valor)}</span></div>
+        ${linhasComuns.join("")}
+      `;
+    }
+  });
+}
+
+function gerarPalpiteRapido(k){
+  const c = LOTERIAS[k];
+  const jogo = gerarJogos(c, 1, [])[0];
+  const resultado = document.getElementById("quickpickResult");
+  resultado.classList.add("show");
+  resultado.innerHTML = `
+    <div class="quickpick-result-head">
+      <span>Sugestão para ${c.nome}</span>
+      <span>soma ${jogo.reduce((a,b)=>a+b,0)}</span>
+    </div>
+    <div class="quickpick-balls">
+      ${jogo.map(n => `<span class="ball" style="background-color:${c.accent}; color:var(--on-accent);">${pad(n)}</span>`).join("")}
+    </div>
+  `;
+}
+
+function mostrarInicio(){
+  document.getElementById("viewInicio").style.display = "";
+  document.getElementById("appShell").style.display = "none";
+  closeSidebar();
+}
+function mostrarApp(){
+  document.getElementById("viewInicio").style.display = "none";
+  document.getElementById("appShell").style.display = "";
+}
+
+
+/* ============ Motor Cascata Lotofácil (extraído de Motor_para_Bancada_IA_LTF.ods) ============ */
+/* Tabelas fixas: 23 e 21 dezenas literais (universo 1-25). Jogos de 19 literais.
+   Padrões 17 e 15 armazenados como posições (rank 0-based) para funcionar com
+   qualquer conjunto de entrada, conforme solicitado. */
+
+const LTF_TABELAS_23 = [
+  [1,2,3,4,5,7,8,9,10,11,12,13,14,16,17,18,19,20,21,22,23,24,25],
+  [1,2,3,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+  [1,2,3,4,5,6,7,9,10,11,12,13,14,15,16,17,18,19,20,21,22,24,25],
+];
+
+const LTF_RANKS_21 = [
+  [0,1,2,3,4,5,6,7,8,9,10,11,12,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,9,10,11,13,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,9,10,11,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,9,10,12,13,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,9,10,12,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,9,10,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,9,11,12,13,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,9,11,12,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,9,11,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,9,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,10,11,12,13,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,10,11,12,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,10,11,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,10,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,9,10,11,12,13,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,9,10,11,12,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,9,10,11,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,9,10,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,9,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,10,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,8,9,10,11,12,13,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,8,9,10,11,12,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,8,9,10,11,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,8,9,10,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,8,9,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,8,10,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,7,8,9,10,11,12,13,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,7,8,9,10,11,12,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,7,8,9,10,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,7,8,9,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,7,8,10,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,7,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,6,7,8,9,10,11,12,13,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,6,7,8,9,10,11,12,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,6,7,8,9,10,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,6,7,8,10,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,6,7,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
+  [0,1,2,3,4,5,6,7,8,9,10,11,12,15,16,17,18,19,20,21,22],
+];
+
+const LTF_RANKS_19 = [
+  [0,1,2,3,4,6,7,9,10,11,12,13,15,16,17,18,20,21,22],
+  [0,1,2,3,4,7,8,9,10,11,12,13,15,16,17,18,19,20,22],
+  [0,1,2,3,4,6,7,8,9,11,12,13,15,16,17,18,20,21,22],
+  [0,1,2,3,4,6,7,8,9,10,11,12,13,15,16,17,19,21,22],
+  [0,1,2,4,6,7,8,9,10,11,12,13,15,16,18,19,20,21,22],
+];
+
+const LTF_RANKS_17 = [
+  [0,1,2,3,4,5,6,7,8,10,11,12,14,15,16,17,18],
+  [1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,17,18],
+  [0,1,2,3,4,5,7,8,9,10,11,12,14,15,16,17,18],
+  [0,1,2,3,4,5,6,7,8,9,10,11,13,15,16,17,18],
+  [1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18],
+  [0,1,2,3,5,6,7,8,9,10,11,12,13,14,15,16,18],
+  [0,1,2,3,4,6,7,8,9,10,11,13,14,15,16,17,18],
+  [0,1,2,3,4,5,6,7,9,10,12,13,14,15,16,17,18],
+  [0,1,2,3,4,5,6,7,8,9,10,11,13,14,16,17,18],
+  [0,1,3,4,5,6,7,8,9,10,12,13,14,15,16,17,18],
+  [0,2,3,4,5,7,8,9,10,11,12,13,14,15,16,17,18],
+  [0,1,2,3,4,6,7,8,9,10,11,12,13,14,16,17,18],
+  [0,2,3,4,5,6,7,9,10,11,12,13,14,15,16,17,18],
+  [0,1,2,3,4,5,6,7,8,9,10,11,12,14,15,17,18],
+  [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18],
+  [0,1,2,3,4,5,7,8,9,10,11,13,14,15,16,17,18],
+  [0,1,2,3,4,6,7,8,9,10,11,12,14,15,16,17,18],
+  [0,1,2,3,4,5,6,7,8,10,12,13,14,15,16,17,18],
+  [0,1,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+  [0,1,2,3,4,5,6,7,8,10,11,12,13,14,15,17,18],
+  [0,1,2,3,4,5,7,8,9,10,11,12,13,14,15,17,18],
+  [0,1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18],
+  [0,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+  [0,1,2,4,5,7,8,9,10,11,12,13,14,15,16,17,18],
+  [0,1,2,4,5,6,7,8,9,10,12,13,14,15,16,17,18],
+  [0,1,2,3,4,6,7,8,9,10,12,13,14,15,16,17,18],
+  [0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,18],
+];
+
+const LTF_RANKS_15 = [
+  [0,1,2,3,4,5,6,7,8,9,10,11,12,14,15],
+  [0,1,2,3,4,5,6,7,8,9,10,11,12,13,15],
+  [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
+  [0,1,2,3,4,5,6,7,8,9,10,11,13,14,15],
+  [0,1,2,3,4,5,6,7,8,9,10,12,13,14,15],
+  [0,1,2,3,4,5,6,7,8,9,11,12,13,14,15],
+  [0,1,2,3,4,5,6,7,8,10,11,12,13,14,15],
+  [0,1,2,3,4,5,6,7,9,10,11,12,13,14,15],
+  [0,1,2,3,4,5,6,8,9,10,11,12,13,14,15],
+  [0,1,2,3,4,5,7,8,9,10,11,12,13,14,15],
+  [0,1,2,3,4,6,7,8,9,10,11,12,13,14,15],
+  [0,1,2,3,5,6,7,8,9,10,11,12,13,14,15],
+  [0,1,2,4,5,6,7,8,9,10,11,12,13,14,15],
+  [0,1,3,4,5,6,7,8,9,10,11,12,13,14,15],
+  [0,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+  [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+];
+
+const LTF_EXTRA_RANK17 = 16;
+
+function ltfIsSubset(sub, sup){
+  const s = new Set(sup);
+  return sub.every(v => s.has(v));
+}
+function ltfEscolher(arr){
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+function ltfRemoverAleatorio(arr, qtdRemover){
+  const pool = [...arr];
+  for(let i=0; i<qtdRemover && pool.length; i++){
+    pool.splice(Math.floor(Math.random()*pool.length), 1);
+  }
+  return pool.sort((a,b)=>a-b);
+}
+
+/* Gera 1 jogo pela cascata, parando no tamanho pedido (20, 19, 18, 17 ou 15).
+   20 e 18 não existem como tabela pronta na planilha — são obtidos tirando
+   1 dezena aleatória da etapa anterior (21→20 e 19→18), igual você descreveu.
+   t23Custom, se informado, substitui o sorteio entre as 3 tabelas prontas. */
+function gerarCascataLotofacil(tamanhoAlvo, t23Custom){
+  tamanhoAlvo = tamanhoAlvo || 15;
+
+  // Etapa 1: tabela de 23 — a sua, se informada, senão sorteia 1 das 3 prontas
+  const t23ord = (t23Custom && t23Custom.length === 23)
+    ? [...t23Custom].sort((a,b)=>a-b)
+    : [...ltfEscolher(LTF_TABELAS_23)].sort((a,b)=>a-b);
+
+  const trilha = { t23: t23ord };
+
+  // Etapa 2: tabela de 21 — aplica 1 dos 45 padrões posicionais sobre a 23
+  const padrao21 = ltfEscolher(LTF_RANKS_21);
+  const t21 = padrao21.map(i => t23ord[i]).sort((a,b)=>a-b);
+  trilha.t21 = t21;
+
+  if(tamanhoAlvo === 20){
+    // Etapa 2b: jogo de 20 — tira 1 dezena aleatória da 21 (novo, não vem da planilha)
+    const t20 = ltfRemoverAleatorio(t21, 1);
+    return { ...trilha, t20, resultado: t20, extra: null };
+  }
+
+  // Etapa 3: jogo de 19 — ramo próprio, aplica 1 dos 5 padrões posicionais sobre a 23
+  const padrao19 = ltfEscolher(LTF_RANKS_19);
+  const t19ord = padrao19.map(i => t23ord[i]).sort((a,b)=>a-b);
+  trilha.t19 = t19ord;
+  if(tamanhoAlvo === 19) return { ...trilha, resultado: t19ord, extra: null };
+
+  if(tamanhoAlvo === 18){
+    // Etapa 3b: jogo de 18 — tira 1 dezena aleatória da 19 (novo, não vem da planilha)
+    const t18 = ltfRemoverAleatorio(t19ord, 1);
+    return { ...trilha, t18, resultado: t18, extra: null };
+  }
+
+  // Etapa 4: padrão posicional 19→17 (um dos 27 da planilha)
+  const padrao17 = ltfEscolher(LTF_RANKS_17);
+  const t17ord = padrao17.map(i => t19ord[i]).sort((a,b)=>a-b);
+  trilha.t17 = t17ord;
+  if(tamanhoAlvo === 17) return { ...trilha, resultado: t17ord, extra: null };
+
+  // Etapa 5: padrão posicional 17→15 + extra (um dos 16 da planilha)
+  const padrao15 = ltfEscolher(LTF_RANKS_15);
+  const jogo15 = padrao15.map(i => t17ord[i]).sort((a,b)=>a-b);
+  const extra = t17ord[LTF_EXTRA_RANK17];
+
+  return { ...trilha, resultado: jogo15, extra };
+}
+
+
+/* ============ Motor Cascata Mega-Sena (extraído de para_o_claud.ods) ============ */
+/* 4 tabelas fixas de 45 dezenas (universo 1-60), cada uma em 3 linhas de 15
+   dezenas consecutivas. A redução 45→30 e 30→21 é feita por SELEÇÃO DE COLUNAS
+   (mesmas posições nas 3 linhas) — exatamente como na planilha: você "pegou 10
+   colunas" pra formar as tabelas de 30, e depois "pegou 7 colunas" pra formar
+   as de 21. Como a seleção é posicional, o mesmo padrão de colunas funciona em
+   qualquer uma das 3 linhas de qualquer uma das 4 tabelas de 45. */
+
+const MS_TABELAS_45 = [
+  // Tabela 1: 4–48 (linhas: 4-18 / 19-33 / 34-48)
+  [[4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+   [19,20,21,22,23,24,25,26,27,28,29,30,31,32,33],
+   [34,35,36,37,38,39,40,41,42,43,44,45,46,47,48]],
+  // Tabela 2: 1-30 + 46-60 (linhas: 1-15 / 16-30 / 46-60) — base usada na sua simulação
+  [[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+   [16,17,18,19,20,21,22,23,24,25,26,27,28,29,30],
+   [46,47,48,49,50,51,52,53,54,55,56,57,58,59,60]],
+  // Tabela 3: 1-15 + 31-60 (linhas: 1-15 / 31-45 / 46-60)
+  [[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+   [31,32,33,34,35,36,37,38,39,40,41,42,43,44,45],
+   [46,47,48,49,50,51,52,53,54,55,56,57,58,59,60]],
+  // Tabela 4: 16-60 (linhas: 16-30 / 31-45 / 46-60)
+  [[16,17,18,19,20,21,22,23,24,25,26,27,28,29,30],
+   [31,32,33,34,35,36,37,38,39,40,41,42,43,44,45],
+   [46,47,48,49,50,51,52,53,54,55,56,57,58,59,60]],
+];
+
+// Padrões de colunas 45→30 (10 posições de 0 a 14, mantidas nas 3 linhas).
+// Índice 1 é o padrão que, aplicado à Tabela 2, reproduz a tabela de 30 que
+// você usou como base pras 4 tabelas de 21 (6-15, 21-30, 51-60).
+const MS_COLS_45_30 = [
+  [0,1,2,3,4,5,6,7,8,9],
+  [5,6,7,8,9,10,11,12,13,14],
+  [1,2,3,4,7,10,11,12,13,14],
+  [0,1,2,6,7,8,11,12,13,14],
+  [0,1,2,4,6,7,11,12,13,14],
+];
+
+// Padrões de colunas 30→21 (7 posições de 0 a 9, mantidas nas 3 linhas).
+// Essas 4 são as literais da sua planilha, aplicadas sobre a tabela de 30 acima
+// — a combinação que você simulou e chegou em ~7.303 jogos após os filtros.
+const MS_COLS_30_21 = [
+  [2,3,4,6,7,8,9],
+  [0,1,2,3,5,6,7],
+  [0,1,2,3,7,8,9],
+  [0,1,2,4,6,7,9],
+];
+
+function msAplicarColunas(base3linhas, cols){
+  return base3linhas.map(linha => cols.map(i => linha[i]));
+}
+function msFlat(linhas3){ return linhas3.flat().sort((a,b)=>a-b); }
+
+function msGerarTabelas(idx45, idx4530, idx3021){
+  const base45 = MS_TABELAS_45[idx45];
+  const linhas30 = msAplicarColunas(base45, MS_COLS_45_30[idx4530]);
+  const linhas21 = msAplicarColunas(linhas30, MS_COLS_30_21[idx3021]);
+  return { t45: msFlat(base45), t30: msFlat(linhas30), t21: msFlat(linhas21) };
+}
+
+/* Fila de combinações: primeiro as 4 "oficiais" (as que você simulou), depois
+   expande pras demais combinações de base45 × padrão45-30 × padrão30-21 —
+   assim pedidos pequenos usam só a tabela original, e pedidos maiores vão
+   puxando as outras, igual à cascata da Lotofácil. */
+const MS_COMBOS_OFICIAIS = MS_COLS_30_21.map((_, i) => ({ idx45: 1, idx4530: 1, idx3021: i }));
+const MS_COMBOS_TODAS = (() => {
+  const extras = [];
+  for(let b=0;b<MS_TABELAS_45.length;b++)
+    for(let p30=0;p30<MS_COLS_45_30.length;p30++)
+      for(let p21=0;p21<MS_COLS_30_21.length;p21++){
+        if(b===1 && p30===1) continue; // já cobertas pelas oficiais
+        extras.push({ idx45:b, idx4530:p30, idx3021:p21 });
+      }
+  return MS_COMBOS_OFICIAIS.concat(extras);
+})();
+
+/* O jogo final vale de 6 a 15 dezenas (min/max reais da Mega-Sena). A faixa de
+   soma e o limite de repetidas do concurso anterior, calibrados originalmente
+   pra 6 dezenas (soma 120-240, 1-2 repetidas), são escalados proporcionalmente
+   ao tamanho do jogo pedido. */
+function msValidarRepetidasAnterior(jogo, anterior, tamanho){
+  if(!anterior || !anterior.length) return true;
+  const rep = jogo.filter(n => anterior.includes(n)).length;
+  const maxRep = Math.max(2, Math.ceil(2 * tamanho / 6));
+  return rep >= 1 && rep <= maxRep;
+}
+function msJogoValido(jogo, anterior, tamanho){
+  const somaMin = Math.round(120 * tamanho / 6);
+  const somaMax = Math.round(240 * tamanho / 6);
+  return validarSequencia(jogo, { maxConsecutivos: 2 })
+      && validarSoma(jogo, { somaMin, somaMax })
+      && msValidarRepetidasAnterior(jogo, anterior, tamanho);
+}
+function msSortearDaTabela(universo21, anterior, tamanho, maxTentativas){
+  for(let t=0; t<(maxTentativas||400); t++){
+    const jogo = sortearJogoAleatorio(universo21, tamanho).sort((a,b)=>a-b);
+    if(msJogoValido(jogo, anterior, tamanho)) return jogo;
+  }
+  return null;
+}
+
+let msCursor = 0;
+function gerarCascataMegaSena(quantidade, anterior, tamanho){
+  tamanho = Math.min(Math.max(tamanho || 6, 6), 15);
+  const jogos = [];
+  const vistos = new Set();
+  let tentativasGlobais = 0;
+  const limiteGlobal = Math.max(quantidade * 300, 3000);
+  while(jogos.length < quantidade && tentativasGlobais < limiteGlobal){
+    tentativasGlobais++;
+    const combo = MS_COMBOS_TODAS[msCursor % MS_COMBOS_TODAS.length];
+    msCursor++;
+    const tabelas = msGerarTabelas(combo.idx45, combo.idx4530, combo.idx3021);
+    const jogo = msSortearDaTabela(tabelas.t21, anterior, tamanho, 300);
+    if(!jogo) continue;
+    const chave = jogo.join(",");
+    if(vistos.has(chave)) continue;
+    vistos.add(chave);
+    jogos.push({ ...combo, t45: tabelas.t45, t30: tabelas.t30, t21: tabelas.t21, resultado: jogo });
+  }
+  return jogos;
+}
+
+/* ============ Motor Cascata Dupla Sena (extraído de Planilha_Dupla_Sena.ods) ============ */
+/* A planilha divide o universo 1-50 em 5 "dezenas" de 10 números (1-10, 11-20,
+   21-30, 31-40, 41-50). Cada TABELA de 30 números é a junção de 3 dessas 5
+   dezenas — existem C(5,3) = 10 tabelas, exatamente as 10 "TABELA 1..10" da
+   aba Matriz. O bloco "CONVERSOR DE 30 PARA 18 NÚMEROS" pega uma tabela de 30
+   (3 linhas de 10) e escolhe as mesmas 6 colunas nas 3 linhas, gerando 18
+   números — existem C(10,6) = 210 padrões possíveis, que são exatamente as
+   210 linhas "Nº / Linha com 18 números" da planilha. O jogo final (6 a 12
+   dezenas, como a Dupla Sena permite apostar) é sorteado dentro dessas 18. */
+
+const DS_DEZENAS = [
+  [1,2,3,4,5,6,7,8,9,10],
+  [11,12,13,14,15,16,17,18,19,20],
+  [21,22,23,24,25,26,27,28,29,30],
+  [31,32,33,34,35,36,37,38,39,40],
+  [41,42,43,44,45,46,47,48,49,50],
+];
+
+function dsCombinacoes(arr, k){
+  const resultado = [];
+  function comb(start, atual){
+    if(atual.length === k){ resultado.push(atual.slice()); return; }
+    for(let i = start; i < arr.length; i++){
+      atual.push(arr[i]);
+      comb(i + 1, atual);
+      atual.pop();
+    }
+  }
+  comb(0, []);
+  return resultado;
+}
+
+// As 10 tabelas de 30 (índices das 5 dezenas, escolhidas 3 a 3) — mesma ordem
+// da planilha: TABELA 1 = dezenas 0,1,2 (1-10,11-20,21-30) ... TABELA 10 = 2,3,4.
+const DS_TABELAS_30 = dsCombinacoes([0,1,2,3,4], 3);
+
+// Os 210 padrões de colunas 30→18 (6 das 10 posições, mantidas nas 3 linhas).
+const DS_COLS_30_18 = dsCombinacoes([0,1,2,3,4,5,6,7,8,9], 6);
+
+function dsAplicarColunas(base3linhas, cols){
+  return base3linhas.map(linha => cols.map(i => linha[i]));
+}
+function dsFlat(linhas){ return linhas.flat().sort((a,b)=>a-b); }
+
+function dsGerarTabelas(idxTabela30, idxCols1830){
+  const decadas = DS_TABELAS_30[idxTabela30].map(i => DS_DEZENAS[i]);
+  const linhas18 = dsAplicarColunas(decadas, DS_COLS_30_18[idxCols1830]);
+  return { decadas: DS_TABELAS_30[idxTabela30], t30: dsFlat(decadas), t18: dsFlat(linhas18) };
+}
+
+// Fila de combinações (10 tabelas × 210 padrões = 2.100), percorrida por um
+// cursor — pedidos pequenos usam as primeiras combinações, pedidos maiores
+// vão avançando pelas demais, igual à cascata da Mega-Sena.
+const DS_COMBOS_TODAS = (() => {
+  const combos = [];
+  for(let t = 0; t < DS_TABELAS_30.length; t++)
+    for(let c = 0; c < DS_COLS_30_18.length; c++)
+      combos.push({ idxTabela30: t, idxCols1830: c });
+  return combos;
+})();
+
+function dsJogoValido(jogo){
+  return validarSequencia(jogo, { maxConsecutivos: LOTERIAS.duplasena.maxConsecutivos });
+}
+function dsSortearDaTabela(universo18, tamanho, maxTentativas){
+  for(let t = 0; t < (maxTentativas || 300); t++){
+    const jogo = sortearJogoAleatorio(universo18, tamanho).sort((a,b)=>a-b);
+    if(dsJogoValido(jogo)) return jogo;
+  }
+  return null;
+}
+
+let dsCursor = 0;
+function gerarCascataDuplaSena(quantidade, tamanho){
+  const jogos = [];
+  const vistos = new Set();
+  let tentativasGlobais = 0;
+  const limiteGlobal = Math.max(quantidade * 300, 3000);
+  while(jogos.length < quantidade && tentativasGlobais < limiteGlobal){
+    tentativasGlobais++;
+    const combo = DS_COMBOS_TODAS[dsCursor % DS_COMBOS_TODAS.length];
+    dsCursor++;
+    const tabelas = dsGerarTabelas(combo.idxTabela30, combo.idxCols1830);
+    const jogo = dsSortearDaTabela(tabelas.t18, tamanho, 300);
+    if(!jogo) continue;
+    const chave = jogo.join(",");
+    if(vistos.has(chave)) continue;
+    vistos.add(chave);
+    jogos.push({ ...combo, decadas: tabelas.decadas, t30: tabelas.t30, t18: tabelas.t18, resultado: jogo });
+  }
+  return jogos;
+}
+
+function pad(n){ return String(n).padStart(2, "0"); }
+
+function parseDezenas(texto, conf){
+  if(!texto) return [];
+  return texto.replace(/[^\d]/g, " ").trim().split(/\s+/).filter(Boolean)
+    .map(n => parseInt(n, 10))
+    .filter(n => !isNaN(n) && n >= conf.minNumero && n <= conf.maxNumero);
+}
+
+function validarSequencia(jogo, conf){
+  if(!conf.maxConsecutivos) return true;
+  const ordenados = [...jogo].sort((a,b)=>a-b);
+  let consecutivos = 1;
+  for(let i=0;i<ordenados.length-1;i++){
+    if(ordenados[i+1] === ordenados[i]+1){
+      consecutivos++;
+      if(consecutivos > conf.maxConsecutivos) return false;
+    } else if(ordenados[i+1] !== ordenados[i]){
+      consecutivos = 1;
+    }
+  }
+  return true;
+}
+
+function validarSoma(jogo, conf){
+  const soma = jogo.reduce((a,b)=>a+b,0);
+  return soma >= conf.somaMin && soma <= conf.somaMax;
+}
+
+function validarLotofacil(jogo, anterior){
+  const conf = LOTERIAS.lotofacil;
+  const impares = jogo.filter(n => n % 2 !== 0).length;
+  if(impares < conf.imparesMin || impares > conf.imparesMax) return false;
+
+  if(anterior.length > 0){
+    const repetidos = jogo.filter(n => anterior.includes(n)).length;
+    if(repetidos < conf.sorteadosAnteriorMin || repetidos > conf.sorteadosAnteriorMax) return false;
+
+    const ausentes = jogo.filter(n => !anterior.includes(n)).length;
+    if(ausentes < conf.naoSorteadosMin || ausentes > conf.naoSorteadosMax) return false;
+  }
+  return validarSoma(jogo, conf);
+}
+
+function sortearJogoAleatorio(universo, qtd){
+  const pool = [...universo];
+  const jogo = [];
+  while(jogo.length < qtd && pool.length){
+    const idx = Math.floor(Math.random()*pool.length);
+    jogo.push(pool.splice(idx,1)[0]);
+  }
+  return jogo;
+}
+
+function excessoConsecutivo(jogoOrdenado, maxConsecutivos){
+  let excesso = 0, i = 0;
+  while(i < jogoOrdenado.length){
+    let j = i;
+    while(j+1 < jogoOrdenado.length && jogoOrdenado[j+1] === jogoOrdenado[j]+1) j++;
+    const tam = j - i + 1;
+    if(tam > maxConsecutivos) excesso += (tam - maxConsecutivos);
+    i = j + 1;
+  }
+  return excesso;
+}
+
+/* "Erro" do jogo em relação aos critérios de soma e sequência — 0 significa que
+   bate os dois. Usado pra guiar o ajuste fino sem nunca mexer no limite de
+   repetidas do concurso anterior (esse é garantido pela construção, não pelo score). */
+function scoreCriterios(jogo, conf){
+  const o = [...jogo].sort((a,b)=>a-b);
+  const soma = o.reduce((a,b)=>a+b,0);
+  const penSoma = Math.max(0, conf.somaMin - soma) + Math.max(0, soma - conf.somaMax);
+  const penSeq = conf.maxConsecutivos ? excessoConsecutivo(o, conf.maxConsecutivos) * 5 : 0;
+  return penSoma + penSeq;
+}
+
+/* Monta um jogo respeitando o limite de repetidas do concurso anterior DESDE A ORIGEM
+   (grupo "repetidas disponíveis" x grupo "livres" sorteados separadamente), e então
+   faz um ajuste fino por trocas dentro de cada grupo (nunca entre grupos, pra não
+   violar o limite) até bater soma e sequência — ou até esgotar a liberdade possível.
+   Necessário pra Lotomania: sortear aleatório e descartar por tentativa e erro é
+   estatisticamente inviável quando o jogo cobre metade do universo. */
+function gerarJogoComLimiteRepetidas(universo, anterior, conf){
+  const qtd = conf.dezenasPorJogo;
+  const repetidasDisponiveis = universo.filter(n => anterior.includes(n));
+  const livres = universo.filter(n => !anterior.includes(n));
+  const maxRep = Math.min(conf.maxRepetidosAnterior, repetidasDisponiveis.length);
+  const minRep = Math.max(0, qtd - livres.length);
+  if(minRep > maxRep) return null; // impossível com esse limite (não ocorre nas 5 loterias atuais)
+
+  // usa o máximo de repetidas permitido: maximiza a liberdade de ajuste depois,
+  // sem nunca ultrapassar o limite configurado
+  const qtdRep = maxRep;
+  const qtdLivres = qtd - qtdRep;
+
+  let dentroRep = new Set(sortearJogoAleatorio(repetidasDisponiveis, qtdRep));
+  let dentroLivre = new Set(sortearJogoAleatorio(livres, qtdLivres));
+  let restReps = repetidasDisponiveis.filter(n => !dentroRep.has(n));
+  let restLivres = livres.filter(n => !dentroLivre.has(n));
+
+  const montar = () => [...dentroRep, ...dentroLivre].sort((a,b)=>a-b);
+
+  let jogo = montar();
+  let melhorScore = scoreCriterios(jogo, conf);
+  let melhorJogo = jogo;
+
+  for(let it=0; it<6000 && melhorScore>0; it++){
+    const usarLivre = restLivres.length && (Math.random()<0.6 || !restReps.length);
+    let out, ins, grupo;
+    if(usarLivre && dentroLivre.size){
+      const arr=[...dentroLivre];
+      out = arr[Math.floor(Math.random()*arr.length)];
+      ins = restLivres[Math.floor(Math.random()*restLivres.length)];
+      grupo = 'livre';
+    } else if(restReps.length && dentroRep.size){
+      const arr=[...dentroRep];
+      out = arr[Math.floor(Math.random()*arr.length)];
+      ins = restReps[Math.floor(Math.random()*restReps.length)];
+      grupo = 'rep';
+    } else break;
+
+    if(grupo==='livre'){ dentroLivre.delete(out); dentroLivre.add(ins); }
+    else { dentroRep.delete(out); dentroRep.add(ins); }
+
+    const novoJogo = montar();
+    const novoScore = scoreCriterios(novoJogo, conf);
+
+    if(novoScore <= melhorScore + (Math.random()<0.05 ? 2 : 0)){
+      if(grupo==='livre'){ restLivres = restLivres.filter(n=>n!==ins).concat([out]); }
+      else { restReps = restReps.filter(n=>n!==ins).concat([out]); }
+      if(novoScore < melhorScore){ melhorScore = novoScore; melhorJogo = novoJogo; }
+    } else {
+      if(grupo==='livre'){ dentroLivre.delete(ins); dentroLivre.add(out); }
+      else { dentroRep.delete(ins); dentroRep.add(out); }
+    }
+  }
+  return { jogo: melhorJogo, resolvidoCompleto: melhorScore === 0 };
+}
+
+function gerarUnicoJogo(conf, anterior){
+  const universo = [];
+  for(let n=conf.minNumero;n<=conf.maxNumero;n++) universo.push(n);
+
+  if(conf.key === "lotofacil"){
+    for(let tentativa=0; tentativa<4000; tentativa++){
+      const jogo = sortearJogoAleatorio(universo, conf.dezenasPorJogo).sort((a,b)=>a-b);
+      if(validarLotofacil(jogo, anterior)) return jogo;
+    }
+    return sortearJogoAleatorio(universo, conf.dezenasPorJogo).sort((a,b)=>a-b);
+  }
+
+  const usaLimiteDirigido = anterior.length > 0 && conf.maxRepetidosAnterior !== undefined;
+
+  if(usaLimiteDirigido){
+    const resultado = gerarJogoComLimiteRepetidas(universo, anterior, conf);
+    if(resultado){
+      if(!resultado.resolvidoCompleto) state.avisoCriterioParcial = true;
+      return resultado.jogo;
+    }
+  }
+
+  for(let tentativa=0; tentativa<4000; tentativa++){
+    const jogo = sortearJogoAleatorio(universo, conf.dezenasPorJogo).sort((a,b)=>a-b);
+    if(!validarSequencia(jogo, conf)) continue;
+    if(!validarSoma(jogo, conf)) continue;
+    return jogo;
+  }
+  return sortearJogoAleatorio(universo, conf.dezenasPorJogo).sort((a,b)=>a-b);
+}
+
+function gerarJogos(conf, quantidade, anterior){
+  const jogos = [];
+  for(let i=0;i<quantidade;i++) jogos.push(gerarUnicoJogo(conf, anterior));
+  return jogos;
+}
+
+function criterios(conf){
+  const base = [];
+  if(conf.key === "lotofacil"){
+    base.push(`Ímpares entre ${conf.imparesMin} e ${conf.imparesMax}`);
+    base.push(`Repetidas do concurso anterior: ${conf.sorteadosAnteriorMin} a ${conf.sorteadosAnteriorMax}`);
+    base.push(`Dezenas ausentes do anterior: ${conf.naoSorteadosMin} a ${conf.naoSorteadosMax}`);
+  } else {
+    base.push(`Máximo de ${conf.maxConsecutivos} dezenas consecutivas`);
+    base.push(`Máximo de ${conf.maxRepetidosAnterior} repetidas do concurso anterior`);
+  }
+  base.push(`Soma total entre ${conf.somaMin} e ${conf.somaMax}`);
+  return base;
+}
+
+async function buscarConcurso(conf, numero, sorteioDupla){
+  const num = (numero || "").trim();
+  const data = await buscarPayloadConcurso(conf, num || null);
+  if(!data) throw new Error("Não foi possível obter o resultado oficial agora");
+
+  let dezenasRaw = [];
+  let sufixo = "";
+  if(conf.key === "duplasena" && sorteioDupla === "2"){
+    dezenasRaw = data.listaDezenasSegundoSorteio ?? data.dezenas2 ?? [];
+    sufixo = " (2º sorteio)";
+  } else {
+    dezenasRaw = data.listaDezenas ?? data.dezenas ?? [];
+    if(conf.key === "duplasena") sufixo = " (1º sorteio)";
+  }
+
+  const dezenas = dezenasRaw.map(d => parseInt(String(d),10)).filter(n => !isNaN(n));
+  if(!dezenas.length) throw new Error("Dezenas não encontradas");
+
+  const concurso = data.numero ?? data.concurso ?? "";
+  const dataApuracao = data.dataApuracao ?? data.data ?? "";
+  return {
+    dezenas,
+    label: `Concurso #${concurso}${sufixo}${dataApuracao ? " · " + dataApuracao : ""}`,
+  };
+}
+
+/* ============ Estado da aplicação ============ */
+const state = {
+  loteria: "megasena",
+  jogos: [],
+  jogosEspelho: [],
+  acertos: null,
+  dezenasOficiais: [],
+  labelConcurso: "",
+  buscando: false,
+  modo: "padrao",
+  cascataJogos: [],
+  cascataMSJogos: [],
+  cascataDSJogos: [],
+  avisoCriterioParcial: false,
+  conferidor: {
+    loteria: "megasena",
+    jogos: [],
+    oficiais: [],
+    acertos: null,
+  },
+};
+
+/* ============ Toasts ============ */
+function toast(kind, title, description){
+  const wrap = document.getElementById("toastWrap");
+  const el = document.createElement("div");
+  el.className = "toast " + kind;
+  el.innerHTML = `<div class="toast-title">${title}</div>` + (description ? `<div class="toast-desc">${description}</div>` : "");
+  wrap.appendChild(el);
+  setTimeout(() => { el.style.transition = "opacity .25s"; el.style.opacity = "0"; setTimeout(()=>el.remove(), 250); }, 3200);
+}
+
+/* ============ Sidebar ============ */
+function renderSidebar(){
+  const nav = document.getElementById("sidebarNav");
+  nav.innerHTML = "";
+  LOTERIA_KEYS.forEach(k => {
+    const conf = LOTERIAS[k];
+    const active = k === state.loteria;
+    const btn = document.createElement("button");
+    btn.className = "nav-item" + (active ? " active" : "");
+    if(active) btn.style.boxShadow = "inset 3px 0 0 0 " + conf.accent;
+    btn.innerHTML = `
+      <span class="nav-badge" style="background-color:${conf.accent}">${conf.badge}</span>
+      <span class="nav-name">${conf.nome}</span>
+      <span class="nav-qtd">${conf.dezenasPorJogo}</span>
+    `;
+    btn.addEventListener("click", () => {
+      trocarModo("padrao");
+      trocarLoteria(k);
+      closeSidebar();
+    });
+    nav.appendChild(btn);
+  });
+
+  const navEsp = document.getElementById("sidebarNavEspeciais");
+  navEsp.innerHTML = "";
+  const ativoCascata = state.modo === "cascata-lotofacil";
+  const btnCascata = document.createElement("button");
+  btnCascata.className = "nav-item" + (ativoCascata ? " active" : "");
+  if(ativoCascata) btnCascata.style.boxShadow = "inset 3px 0 0 0 var(--accent-lotofacil)";
+  btnCascata.innerHTML = `
+    <span class="nav-badge" style="background-color:var(--accent-lotofacil)">CX</span>
+    <span class="nav-name">Lotofácil · Cascata</span>
+  `;
+  btnCascata.addEventListener("click", () => {
+    trocarModo("cascata-lotofacil");
+    closeSidebar();
+  });
+  navEsp.appendChild(btnCascata);
+
+  const ativoCascataMS = state.modo === "cascata-megasena";
+  const btnCascataMS = document.createElement("button");
+  btnCascataMS.className = "nav-item" + (ativoCascataMS ? " active" : "");
+  if(ativoCascataMS) btnCascataMS.style.boxShadow = "inset 3px 0 0 0 var(--accent-megasena)";
+  btnCascataMS.innerHTML = `
+    <span class="nav-badge" style="background-color:var(--accent-megasena)">CX</span>
+    <span class="nav-name">Mega-Sena · Cascata</span>
+  `;
+  btnCascataMS.addEventListener("click", () => {
+    trocarModo("cascata-megasena");
+    closeSidebar();
+  });
+  navEsp.appendChild(btnCascataMS);
+
+  const ativoCascataDS = state.modo === "cascata-duplasena";
+  const btnCascataDS = document.createElement("button");
+  btnCascataDS.className = "nav-item" + (ativoCascataDS ? " active" : "");
+  if(ativoCascataDS) btnCascataDS.style.boxShadow = "inset 3px 0 0 0 var(--accent-duplasena)";
+  btnCascataDS.innerHTML = `
+    <span class="nav-badge" style="background-color:var(--accent-duplasena)">CX</span>
+    <span class="nav-name">Dupla Sena · Cascata</span>
+  `;
+  btnCascataDS.addEventListener("click", () => {
+    trocarModo("cascata-duplasena");
+    closeSidebar();
+  });
+  navEsp.appendChild(btnCascataDS);
+
+  const navFerr = document.getElementById("sidebarNavFerramentas");
+  navFerr.innerHTML = "";
+  const ativoConferidor = state.modo === "conferidor";
+  const btnConferidor = document.createElement("button");
+  btnConferidor.className = "nav-item" + (ativoConferidor ? " active" : "");
+  if(ativoConferidor) btnConferidor.style.boxShadow = "inset 3px 0 0 0 var(--primary)";
+  btnConferidor.innerHTML = `
+    <span class="nav-badge" style="background-color:var(--primary)">
+      <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+    </span>
+    <span class="nav-name">Conferidor</span>
+  `;
+  btnConferidor.addEventListener("click", () => {
+    trocarModo("conferidor");
+    closeSidebar();
+  });
+  navFerr.appendChild(btnConferidor);
+
+  const navChangelog = document.getElementById("sidebarNavChangelog");
+  navChangelog.innerHTML = "";
+  const ativoChangelog = state.modo === "changelog";
+  const btnChangelog = document.createElement("button");
+  btnChangelog.className = "nav-item" + (ativoChangelog ? " active" : "");
+  if(ativoChangelog) btnChangelog.style.boxShadow = "inset 3px 0 0 0 var(--accent-lotomania)";
+  btnChangelog.innerHTML = `
+    <span class="nav-badge" style="background-color:var(--accent-lotomania)">
+      <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+    </span>
+    <span class="nav-name">O que mudou</span>
+  `;
+  btnChangelog.addEventListener("click", () => {
+    trocarModo("changelog");
+    closeSidebar();
+  });
+  navChangelog.appendChild(btnChangelog);
+}
+
+function trocarModo(modo){
+  state.modo = modo;
+  document.getElementById("viewPadrao").style.display = modo === "padrao" ? "" : "none";
+  document.getElementById("viewCascata").style.display = modo === "cascata-lotofacil" ? "" : "none";
+  document.getElementById("viewCascataMS").style.display = modo === "cascata-megasena" ? "" : "none";
+  document.getElementById("viewCascataDS").style.display = modo === "cascata-duplasena" ? "" : "none";
+  document.getElementById("viewConferidor").style.display = modo === "conferidor" ? "" : "none";
+  document.getElementById("viewChangelog").style.display = modo === "changelog" ? "" : "none";
+  document.getElementById("tituloLoteria").textContent =
+    modo === "cascata-lotofacil" ? "Lotofácil · Cascata" :
+    modo === "cascata-megasena" ? "Mega-Sena · Cascata" :
+    modo === "cascata-duplasena" ? "Dupla Sena · Cascata" :
+    modo === "conferidor" ? "Conferidor" :
+    modo === "changelog" ? "O que mudou" : conf().nome;
+  const semJogos = modo === "cascata-lotofacil" ? state.cascataJogos.length === 0
+    : modo === "cascata-megasena" ? state.cascataMSJogos.length === 0
+    : modo === "cascata-duplasena" ? state.cascataDSJogos.length === 0
+    : modo === "conferidor" ? true
+    : modo === "changelog" ? true
+    : state.jogos.length === 0;
+  document.getElementById("btnCopiar").disabled = semJogos;
+  document.getElementById("btnPdf").disabled = semJogos;
+  renderSidebar();
+}
+
+function openSidebar(){
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("sidebarOverlay").classList.add("show");
+}
+function closeSidebar(){
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("sidebarOverlay").classList.remove("show");
+}
+
+document.getElementById("menuBtn").addEventListener("click", openSidebar);
+document.getElementById("sidebarCloseBtn").addEventListener("click", closeSidebar);
+document.getElementById("sidebarOverlay").addEventListener("click", closeSidebar);
+
+/* ============ Render principal ============ */
+function conf(){ return LOTERIAS[state.loteria]; }
+
+function trocarLoteria(k){
+  if(state.loteria === k){
+    // já é a modalidade ativa: só garante que a tela está sincronizada,
+    // sem apagar os jogos que o usuário já gerou.
+    renderAll();
+    return;
+  }
+  state.loteria = k;
+  state.jogos = [];
+  state.jogosEspelho = [];
+  state.acertos = null;
+  state.dezenasOficiais = [];
+  state.labelConcurso = "";
+  document.getElementById("anteriorTexto").value = "";
+  document.getElementById("resultadoOficial").value = "";
+  document.getElementById("numConcurso").value = "";
+  const chkEsp = document.getElementById("chkEspelhar");
+  if(chkEsp) chkEsp.checked = false;
+  renderAll();
+}
+
+function anteriorAtual(){
+  return parseDezenas(document.getElementById("anteriorTexto").value, conf());
+}
+
+function renderAll(){
+  const c = conf();
+  document.getElementById("tituloLoteria").textContent = c.nome;
+  document.getElementById("heroGlow").style.backgroundColor = c.accent;
+  document.getElementById("sorteioDupla").style.display = c.key === "duplasena" ? "block" : "none";
+  document.getElementById("campoEspelhar").style.display = c.key === "lotomania" ? "block" : "none";
+
+  document.getElementById("statGrid").innerHTML = [
+    { l: "Dezenas por jogo", v: c.dezenasPorJogo },
+    { l: "Universo", v: `${pad(c.minNumero)}–${c.maxNumero}` },
+    { l: "Soma alvo", v: `${c.somaMin}–${c.somaMax}` },
+    { l: "Jogos na mesa", v: state.jogos.length },
+  ].map(s => `<div class="stat-card"><dt>${s.l}</dt><dd>${s.v}</dd></div>`).join("");
+
+  document.getElementById("listaCriterios").innerHTML = criterios(c).map(txt =>
+    `<li><span class="dot" style="background-color:${c.accent}"></span>${txt}</li>`
+  ).join("");
+
+  const lbl = document.getElementById("labelConcurso");
+  if(state.labelConcurso){
+    lbl.style.display = "block";
+    lbl.style.color = c.accent;
+    lbl.textContent = state.labelConcurso;
+  } else {
+    lbl.style.display = "none";
+  }
+
+  renderSidebar();
+  renderResultados();
+
+  const temJogos = state.jogos.length > 0;
+  document.getElementById("btnCopiar").disabled = !temJogos;
+  document.getElementById("btnPdf").disabled = !temJogos;
+  document.getElementById("btnLimpar").disabled = !temJogos;
+}
+
+function renderResultados(){
+  const c = conf();
+  document.getElementById("qtdJogosBadge").textContent = `${state.jogos.length} jogos`;
+
+  const empty = document.getElementById("emptyState");
+  const list = document.getElementById("jogosList");
+
+  if(state.jogos.length === 0){
+    empty.style.display = "flex";
+    list.style.display = "none";
+    list.innerHTML = "";
+    return;
+  }
+  empty.style.display = "none";
+  list.style.display = "flex";
+
+  list.innerHTML = state.jogos.map((jogo, i) => {
+    const soma = jogo.reduce((a,b)=>a+b,0);
+    const acertoBadge = state.acertos
+      ? `<span class="acertos-badge" style="background-color:${c.accent}">${state.acertos[i]} acertos</span>`
+      : "";
+    const bolas = jogo.map(n => {
+      const hit = state.dezenasOficiais.includes(n);
+      const style = hit
+        ? `background-color:${c.accent}; color:var(--on-accent);`
+        : "";
+      return `<span class="ball ${hit ? "" : "off"}" style="${style}">${pad(n)}</span>`;
+    }).join("");
+
+    const espelho = state.jogosEspelho[i];
+    const blocoEspelho = espelho ? `
+        <div class="jogo-row" style="margin-top:.625rem;">
+          <span class="jogo-idx" style="opacity:.75;">Espelho do jogo ${pad(i+1)}</span>
+          <span class="soma-txt">soma ${espelho.reduce((a,b)=>a+b,0)}</span>
+        </div>
+        <div class="balls">${espelho.map(n => {
+          const hit = state.dezenasOficiais.includes(n);
+          const style = hit
+            ? `background-color:${c.accent}; color:var(--on-accent);`
+            : `background:transparent; border:1.5px dashed ${c.accent}; color:${c.accent};`;
+          return `<span class="ball" style="${style}">${pad(n)}</span>`;
+        }).join("")}</div>
+    ` : "";
+
+    return `
+      <li class="jogo-card">
+        <div class="jogo-row">
+          <span class="jogo-idx">Jogo ${pad(i+1)}</span>
+          <div class="jogo-meta">
+            ${acertoBadge}
+            <span class="soma-txt">soma ${soma}</span>
+          </div>
+        </div>
+        <div class="balls">${bolas}</div>
+        ${blocoEspelho}
+      </li>
+    `;
+  }).join("");
+}
+
+/* ============ Ações ============ */
+document.getElementById("btnGerar").addEventListener("click", () => {
+  const c = conf();
+  const qtdInput = parseInt(document.getElementById("qtd").value, 10) || 1;
+  const quantidade = Math.min(Math.max(qtdInput, 1), 50);
+  state.avisoCriterioParcial = false;
+  state.jogos = gerarJogos(c, quantidade, anteriorAtual());
+  state.acertos = null;
+  state.dezenasOficiais = [];
+
+  const espelharAtivo = c.key === "lotomania" && document.getElementById("chkEspelhar").checked;
+  if(espelharAtivo){
+    const universo = [];
+    for(let n=c.minNumero; n<=c.maxNumero; n++) universo.push(n);
+    state.jogosEspelho = state.jogos.map(jogo => universo.filter(n => !jogo.includes(n)));
+  } else {
+    state.jogosEspelho = [];
+  }
+
+  renderAll();
+  toast("success", `${quantidade} jogo(s) gerado(s)`, espelharAtivo ? `${c.nome} · com espelho` : c.nome);
+  if(state.avisoCriterioParcial){
+    toast("error", "Alguns jogos relaxaram a sequência", "Com esse concurso anterior, o limite de repetidas + máx. de consecutivas foi matematicamente inviável em pelo menos 1 jogo. O limite de repetidas foi sempre respeitado.");
+  }
+});
+
+document.getElementById("btnConferir").addEventListener("click", () => {
+  const c = conf();
+  const oficiais = parseDezenas(document.getElementById("resultadoOficial").value, c);
+  if(!oficiais.length){
+    toast("error", "Informe as dezenas sorteadas para conferir");
+    return;
+  }
+  state.dezenasOficiais = oficiais;
+  state.acertos = state.jogos.map(j => j.filter(n => oficiais.includes(n)).length);
+  renderAll();
+});
+
+document.getElementById("btnLimpar").addEventListener("click", () => {
+  state.jogos = [];
+  state.jogosEspelho = [];
+  state.acertos = null;
+  renderAll();
+});
+
+document.getElementById("btnCopiar").addEventListener("click", () => {
+  let texto;
+  if(state.modo === "cascata-lotofacil"){
+    texto = state.cascataJogos.map(j => {
+      const linha = j.resultado.map(pad).join(" ");
+      return (j.extra != null && chkExtraAtiva()) ? `${linha}  + extra ${pad(j.extra)}` : linha;
+    }).join("\n");
+  } else if(state.modo === "cascata-megasena"){
+    texto = state.cascataMSJogos.map(j => j.resultado.map(pad).join(" ")).join("\n");
+  } else if(state.modo === "cascata-duplasena"){
+    texto = state.cascataDSJogos.map(j => j.resultado.map(pad).join(" ")).join("\n");
+  } else {
+    texto = state.jogos.map((j,i) => {
+      const linha = j.map(pad).join(" ");
+      const esp = state.jogosEspelho[i];
+      return esp ? `${linha}  |  espelho: ${esp.map(pad).join(" ")}` : linha;
+    }).join("\n");
+  }
+  navigator.clipboard.writeText(texto).then(() => {
+    toast("success", "Jogos copiados para a área de transferência");
+  }).catch(() => {
+    toast("error", "Não foi possível copiar", "Copie manualmente a partir da lista.");
+  });
+});
+
+function chkExtraAtiva(){
+  const el = document.getElementById("chkExtra");
+  return el ? el.checked : false;
+}
+
+/**
+ * Escreve uma linha de jogo no PDF, quebrando automaticamente em múltiplas
+ * linhas quando o texto não cabe na largura da página (isso é o que
+ * causava o corte dos jogos da Lotomania, que têm 50 dezenas por jogo).
+ * Retorna o novo valor de y após imprimir (já considerando quebras de página).
+ */
+function pdfEscreverLinha(doc, texto, x, y, opts){
+  const o = Object.assign({ fontSize: 10, lineHeight: 5.5, marginBottom: 18, marginRight: 14, indent: 0 }, opts || {});
+  doc.setFontSize(o.fontSize);
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const maxWidth = pageWidth - x - o.indent - o.marginRight;
+  const linhas = doc.splitTextToSize(texto, maxWidth);
+  linhas.forEach((linha, idx) => {
+    if(y > pageHeight - o.marginBottom){
+      doc.addPage();
+      y = 20;
+    }
+    doc.text(linha, x + (idx > 0 ? o.indent : 0), y);
+    y += o.lineHeight;
+  });
+  return y;
+}
+
+document.getElementById("btnPdf").addEventListener("click", () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+
+  if(state.modo === "cascata-lotofacil"){
+    const tam = document.getElementById("tamanhoCascata").value;
+    doc.text(`LotoMetrics Pro IA — Lotofácil Cascata (23→21→...→${tam})`, 14, 18);
+    doc.setFontSize(10);
+    doc.text(new Date().toLocaleString("pt-BR"), 14, 25);
+    let y = 36;
+    state.cascataJogos.forEach((j, i) => {
+      const extraTxt = (j.extra != null && chkExtraAtiva()) ? `  + extra ${pad(j.extra)}` : "";
+      y = pdfEscreverLinha(doc, `Jogo ${pad(i+1)}:  ${j.resultado.map(pad).join("  ")}${extraTxt}`, 14, y, { indent: 22 });
+      y += 2.5;
+    });
+    doc.save(`jogos-lotofacil-cascata-${tam}.pdf`);
+    return;
+  }
+
+  if(state.modo === "cascata-megasena"){
+    const tamMS = state.cascataMSJogos[0] ? state.cascataMSJogos[0].resultado.length : document.getElementById("tamanhoCascataMS").value;
+    doc.text(`LotoMetrics Pro IA — Mega-Sena Cascata (45→30→21→${tamMS})`, 14, 18);
+    doc.setFontSize(10);
+    doc.text(new Date().toLocaleString("pt-BR"), 14, 25);
+    let y = 36;
+    state.cascataMSJogos.forEach((j, i) => {
+      y = pdfEscreverLinha(doc, `Jogo ${pad(i+1)}:  ${j.resultado.map(pad).join("  ")}`, 14, y, { indent: 22 });
+      y += 2.5;
+    });
+    doc.save("jogos-megasena-cascata.pdf");
+    return;
+  }
+
+  if(state.modo === "cascata-duplasena"){
+    const tam = state.cascataDSJogos[0] ? state.cascataDSJogos[0].resultado.length : document.getElementById("tamanhoCascataDS").value;
+    doc.text(`LotoMetrics Pro IA — Dupla Sena Cascata (30→18→${tam})`, 14, 18);
+    doc.setFontSize(10);
+    doc.text(new Date().toLocaleString("pt-BR"), 14, 25);
+    let y = 36;
+    state.cascataDSJogos.forEach((j, i) => {
+      y = pdfEscreverLinha(doc, `Jogo ${pad(i+1)}:  ${j.resultado.map(pad).join("  ")}`, 14, y, { indent: 22 });
+      y += 2.5;
+    });
+    doc.save("jogos-duplasena-cascata.pdf");
+    return;
+  }
+
+  const c = conf();
+  doc.text(`LotoMetrics Pro IA — ${c.nome}`, 14, 18);
+  doc.setFontSize(10);
+  doc.text(new Date().toLocaleString("pt-BR"), 14, 25);
+  let y = 36;
+  state.jogos.forEach((jogo, i) => {
+    y = pdfEscreverLinha(doc, `Jogo ${pad(i+1)}:  ${jogo.map(pad).join("  ")}`, 14, y, { indent: 22 });
+    const esp = state.jogosEspelho[i];
+    if(esp){
+      y = pdfEscreverLinha(doc, `  Espelho:  ${esp.map(pad).join("  ")}`, 14, y, { indent: 22 });
+    }
+    y += 3;
+  });
+  doc.save(`jogos-${c.key}.pdf`);
+});
+
+const btnBuscar = document.getElementById("btnBuscar");
+const iconBuscar = document.getElementById("iconBuscar");
+btnBuscar.addEventListener("click", async () => {
+  const c = conf();
+  state.buscando = true;
+  btnBuscar.disabled = true;
+  iconBuscar.classList.add("spin");
+  try {
+    const numConcurso = document.getElementById("numConcurso").value;
+    const sorteioDupla = document.getElementById("sorteioDupla").value;
+    const { dezenas, label } = await buscarConcurso(c, numConcurso, sorteioDupla);
+    document.getElementById("anteriorTexto").value = dezenas.map(pad).join(", ");
+    state.labelConcurso = label;
+    toast("success", `${c.nome} carregada`, label);
+  } catch (e) {
+    toast("error", "Não foi possível buscar o concurso", "Confira o número ou informe as dezenas manualmente.");
+  } finally {
+    state.buscando = false;
+    btnBuscar.disabled = false;
+    iconBuscar.classList.remove("spin");
+    renderAll();
+  }
+});
+
+const btnBuscarMS = document.getElementById("btnBuscarMS");
+const iconBuscarMS = document.getElementById("iconBuscarMS");
+btnBuscarMS.addEventListener("click", async () => {
+  btnBuscarMS.disabled = true;
+  iconBuscarMS.classList.add("spin");
+  try {
+    const numConcurso = document.getElementById("numConcursoMS").value;
+    const { dezenas, label } = await buscarConcurso(LOTERIAS.megasena, numConcurso);
+    document.getElementById("anteriorCascataMS").value = dezenas.map(pad).join(", ");
+    const lbl = document.getElementById("labelConcursoMS");
+    lbl.style.display = "block";
+    lbl.style.color = "var(--accent-megasena)";
+    lbl.textContent = label;
+    toast("success", "Mega-Sena carregada", label);
+  } catch (e) {
+    toast("error", "Não foi possível buscar o concurso", "Confira o número ou informe as dezenas manualmente.");
+  } finally {
+    btnBuscarMS.disabled = false;
+    iconBuscarMS.classList.remove("spin");
+  }
+});
+
+/* ============ Cascata Lotofácil: render + ações ============ */
+function renderCascata(){
+  document.getElementById("qtdCascataBadge").textContent = `${state.cascataJogos.length} jogos`;
+  const empty = document.getElementById("emptyStateCascata");
+  const list = document.getElementById("cascataList");
+
+  if(state.cascataJogos.length === 0){
+    empty.style.display = "flex";
+    list.style.display = "none";
+    list.innerHTML = "";
+    return;
+  }
+  empty.style.display = "none";
+  list.style.display = "flex";
+
+  const etapasOrdem = [
+    { chave: "t23", n: 23, l: "base" },
+    { chave: "t21", n: 21, l: "ramo" },
+    { chave: "t20", n: 20, l: "jogo" },
+    { chave: "t19", n: 19, l: "jogo" },
+    { chave: "t18", n: 18, l: "jogo" },
+    { chave: "t17", n: 17, l: "padrão" },
+  ];
+
+  list.innerHTML = state.cascataJogos.map((j, i) => {
+    const incluirExtra = j.extra != null && chkExtraAtiva();
+    const soma = j.resultado.reduce((a,b)=>a+b,0) + (incluirExtra ? j.extra : 0);
+    const bolas = j.resultado.map(n =>
+      `<span class="ball" style="background-color:var(--accent-lotofacil); color:var(--on-accent);">${pad(n)}</span>`
+    ).join("");
+    const bolaExtra = incluirExtra
+      ? `<span class="ball ball-extra">${pad(j.extra)}</span>`
+      : "";
+
+    const etapasPresentes = etapasOrdem.filter(e => j[e.chave]);
+    const trilhaHtml = etapasPresentes.map((e, idx) => {
+      const isUltima = idx === etapasPresentes.length - 1;
+      const bloco = `<div class="trilha-etapa"${isUltima ? ' style="border-color:var(--accent-lotofacil);"' : ''}><span class="n">${e.n}</span><span class="l">${e.l}</span></div>`;
+      return idx === 0 ? bloco : `<span class="trilha-seta">→</span>${bloco}`;
+    }).join("");
+    const detalheHtml = etapasPresentes.map(e =>
+      `${e.n} dezenas: ${j[e.chave].map(pad).join(", ")}`
+    ).join("<br>");
+
+    return `
+      <li class="cascata-card">
+        <div class="jogo-row">
+          <span class="jogo-idx">Jogo ${pad(i+1)} · ${j.resultado.length} dezenas</span>
+          <span class="soma-txt">soma ${soma}${incluirExtra ? " (com extra)" : ""}</span>
+        </div>
+        <div class="balls">${bolas}${bolaExtra}</div>
+        <details class="trilha-details">
+          <summary>Ver trilha da cascata</summary>
+          <div class="trilha">${trilhaHtml}</div>
+          <div style="margin-top:.5rem; font-size:11px; color:var(--muted-foreground); line-height:1.6;">
+            ${detalheHtml}
+          </div>
+        </details>
+      </li>
+    `;
+  }).join("");
+}
+
+/* ============ Cascata Mega-Sena: render + ações ============ */
+function renderCascataMS(){
+  document.getElementById("qtdCascataMSBadge").textContent = `${state.cascataMSJogos.length} jogos`;
+  const empty = document.getElementById("emptyStateCascataMS");
+  const list = document.getElementById("cascataMSList");
+
+  if(state.cascataMSJogos.length === 0){
+    empty.style.display = "flex";
+    list.style.display = "none";
+    list.innerHTML = "";
+    return;
+  }
+  empty.style.display = "none";
+  list.style.display = "flex";
+
+  list.innerHTML = state.cascataMSJogos.map((j, i) => {
+    const soma = j.resultado.reduce((a,b)=>a+b,0);
+    const bolas = j.resultado.map(n =>
+      `<span class="ball" style="background-color:var(--accent-megasena); color:var(--on-accent);">${pad(n)}</span>`
+    ).join("");
+    return `
+      <li class="cascata-card">
+        <div class="jogo-row">
+          <span class="jogo-idx">Jogo ${pad(i+1)} · ${j.resultado.length} dezenas</span>
+          <span class="soma-txt">soma ${soma}</span>
+        </div>
+        <div class="balls">${bolas}</div>
+        <details class="trilha-details">
+          <summary>Ver trilha da cascata</summary>
+          <div class="trilha">
+            <div class="trilha-etapa"><span class="n">45</span><span class="l">tabela ${j.idx45+1}</span></div>
+            <span class="trilha-seta">→</span>
+            <div class="trilha-etapa"><span class="n">30</span><span class="l">padrão ${j.idx4530+1}</span></div>
+            <span class="trilha-seta">→</span>
+            <div class="trilha-etapa"><span class="n">21</span><span class="l">padrão ${j.idx3021+1}</span></div>
+            <span class="trilha-seta">→</span>
+            <div class="trilha-etapa" style="border-color:var(--accent-megasena);"><span class="n">${j.resultado.length}</span><span class="l">jogo</span></div>
+          </div>
+          <div style="margin-top:.5rem; font-size:11px; color:var(--muted-foreground); line-height:1.6;">
+            45 dezenas: ${j.t45.map(pad).join(", ")}<br>
+            30 dezenas: ${j.t30.map(pad).join(", ")}<br>
+            21 dezenas: ${j.t21.map(pad).join(", ")}
+          </div>
+        </details>
+      </li>
+    `;
+  }).join("");
+}
+
+document.getElementById("btnGerarCascataMS").addEventListener("click", () => {
+  const qtdInput = parseInt(document.getElementById("qtdCascataMS").value, 10) || 1;
+  const quantidade = Math.min(Math.max(qtdInput, 1), 200);
+  const tamanho = Math.min(Math.max(parseInt(document.getElementById("tamanhoCascataMS").value, 10) || 6, 6), 15);
+  const anterior = parseDezenas(document.getElementById("anteriorCascataMS").value, LOTERIAS.megasena);
+
+  const jogos = gerarCascataMegaSena(quantidade, anterior, tamanho);
+  state.cascataMSJogos = jogos;
+  renderCascataMS();
+  document.getElementById("btnCopiar").disabled = false;
+  document.getElementById("btnPdf").disabled = false;
+  document.getElementById("btnLimparCascataMS").disabled = false;
+
+  if(jogos.length < quantidade){
+    toast("error", `Só consegui ${jogos.length} de ${quantidade} jogo(s)`, "Os filtros (soma, consecutivos, repetidas) limitam quantas combinações únicas cabem nas tabelas.");
+  } else {
+    toast("success", `${quantidade} jogo(s) gerado(s)`, `Mega-Sena · cascata 45→30→21→${tamanho}`);
+  }
+});
+
+document.getElementById("btnLimparCascataMS").addEventListener("click", () => {
+  state.cascataMSJogos = [];
+  renderCascataMS();
+  document.getElementById("btnCopiar").disabled = true;
+  document.getElementById("btnPdf").disabled = true;
+  document.getElementById("btnLimparCascataMS").disabled = true;
+});
+
+/* ============ Cascata Dupla Sena: render + ações ============ */
+function renderCascataDS(){
+  document.getElementById("qtdCascataDSBadge").textContent = `${state.cascataDSJogos.length} jogos`;
+  const empty = document.getElementById("emptyStateCascataDS");
+  const list = document.getElementById("cascataDSList");
+
+  if(state.cascataDSJogos.length === 0){
+    empty.style.display = "flex";
+    list.style.display = "none";
+    list.innerHTML = "";
+    return;
+  }
+  empty.style.display = "none";
+  list.style.display = "flex";
+
+  list.innerHTML = state.cascataDSJogos.map((j, i) => {
+    const soma = j.resultado.reduce((a,b)=>a+b,0);
+    const bolas = j.resultado.map(n =>
+      `<span class="ball" style="background-color:var(--accent-duplasena); color:var(--on-accent);">${pad(n)}</span>`
+    ).join("");
+    return `
+      <li class="cascata-card">
+        <div class="jogo-row">
+          <span class="jogo-idx">Jogo ${pad(i+1)} · ${j.resultado.length} dezenas</span>
+          <span class="soma-txt">soma ${soma}</span>
+        </div>
+        <div class="balls">${bolas}</div>
+        <details class="trilha-details">
+          <summary>Ver trilha da cascata</summary>
+          <div class="trilha">
+            <div class="trilha-etapa"><span class="n">30</span><span class="l">tabela ${j.idxTabela30+1}</span></div>
+            <span class="trilha-seta">→</span>
+            <div class="trilha-etapa"><span class="n">18</span><span class="l">padrão ${j.idxCols1830+1}</span></div>
+            <span class="trilha-seta">→</span>
+            <div class="trilha-etapa" style="border-color:var(--accent-duplasena);"><span class="n">${j.resultado.length}</span><span class="l">jogo</span></div>
+          </div>
+          <div style="margin-top:.5rem; font-size:11px; color:var(--muted-foreground); line-height:1.6;">
+            30 dezenas: ${j.t30.map(pad).join(", ")}<br>
+            18 dezenas: ${j.t18.map(pad).join(", ")}
+          </div>
+        </details>
+      </li>
+    `;
+  }).join("");
+}
+
+document.getElementById("btnGerarCascataDS").addEventListener("click", () => {
+  const qtdInput = parseInt(document.getElementById("qtdCascataDS").value, 10) || 1;
+  const quantidade = Math.min(Math.max(qtdInput, 1), 200);
+  const tamanho = Math.min(Math.max(parseInt(document.getElementById("tamanhoCascataDS").value, 10) || 6, 6), 12);
+  document.getElementById("statTamanhoDS").textContent = tamanho;
+
+  const jogos = gerarCascataDuplaSena(quantidade, tamanho);
+  state.cascataDSJogos = jogos;
+  renderCascataDS();
+  document.getElementById("btnCopiar").disabled = false;
+  document.getElementById("btnPdf").disabled = false;
+  document.getElementById("btnLimparCascataDS").disabled = false;
+
+  if(jogos.length < quantidade){
+    toast("error", `Só consegui ${jogos.length} de ${quantidade} jogo(s)`, "O filtro de consecutivos limita quantas combinações únicas cabem nas tabelas.");
+  } else {
+    toast("success", `${quantidade} jogo(s) gerado(s)`, `Dupla Sena · cascata 30→18→${tamanho}`);
+  }
+});
+
+document.getElementById("btnLimparCascataDS").addEventListener("click", () => {
+  state.cascataDSJogos = [];
+  renderCascataDS();
+  document.getElementById("btnCopiar").disabled = true;
+  document.getElementById("btnPdf").disabled = true;
+  document.getElementById("btnLimparCascataDS").disabled = true;
+});
+
+function parseCustom23(){
+  const texto = document.getElementById("custom23Texto").value;
+  const nums = texto.replace(/[^\d]/g, " ").trim().split(/\s+/).filter(Boolean).map(n=>parseInt(n,10));
+  const validos = nums.filter(n => !isNaN(n) && n>=1 && n<=25);
+  const unicos = [...new Set(validos)];
+  return unicos;
+}
+
+function atualizarComoFunciona(){
+  const tamanho = parseInt(document.getElementById("tamanhoCascata").value, 10);
+  const usaCustom = document.getElementById("chkCustom23").checked;
+  const passos = [];
+  passos.push(usaCustom
+    ? "Usa as 23 dezenas que você digitou como base"
+    : "Sorteia 1 das 3 tabelas de 23 dezenas");
+  passos.push("Aplica 1 dos 45 padrões posicionais → 21 dezenas");
+  if(tamanho === 20) passos.push("Tira 1 dezena aleatória da 21 → jogo final de 20");
+  if(tamanho >= 19) passos.push("Aplica 1 dos 5 padrões posicionais → 19 dezenas");
+  if(tamanho === 18) passos.push("Tira 1 dezena aleatória da 19 → jogo final de 18");
+  if(tamanho <= 17) passos.push("Aplica 1 dos 27 padrões posicionais → 17 dezenas");
+  if(tamanho === 15) passos.push("Aplica 1 dos 16 padrões posicionais → jogo final de 15 (+1 extra)");
+  document.getElementById("listaComoFunciona").innerHTML = passos.map(txt =>
+    `<li><span class="dot" style="background-color:var(--accent-lotofacil)"></span>${txt}</li>`
+  ).join("");
+  document.getElementById("linhaChkExtra").style.display = tamanho === 15 ? "flex" : "none";
+  document.getElementById("statTabelas23").textContent = usaCustom ? "sua tabela" : "3 ativas";
+}
+
+document.getElementById("tamanhoCascata").addEventListener("change", atualizarComoFunciona);
+document.getElementById("chkCustom23").addEventListener("change", () => {
+  const ativo = document.getElementById("chkCustom23").checked;
+  document.getElementById("custom23Texto").style.display = ativo ? "block" : "none";
+  atualizarComoFunciona();
+});
+atualizarComoFunciona();
+
+document.getElementById("btnGerarCascata").addEventListener("click", () => {
+  const qtdInput = parseInt(document.getElementById("qtdCascata").value, 10) || 1;
+  const quantidade = Math.min(Math.max(qtdInput, 1), 30);
+  const tamanhoAlvo = parseInt(document.getElementById("tamanhoCascata").value, 10);
+
+  let t23Custom = null;
+  if(document.getElementById("chkCustom23").checked){
+    const dezenas = parseCustom23();
+    if(dezenas.length !== 23){
+      toast("error", "Suas 23 dezenas não batem", `Você digitou ${dezenas.length} dezena(s) válida(s) — precisa ser exatamente 23, entre 1 e 25, sem repetir.`);
+      return;
+    }
+    t23Custom = dezenas;
+  }
+
+  state.cascataJogos = [];
+  for(let i=0;i<quantidade;i++) state.cascataJogos.push(gerarCascataLotofacil(tamanhoAlvo, t23Custom));
+  renderCascata();
+  document.getElementById("btnCopiar").disabled = false;
+  document.getElementById("btnPdf").disabled = false;
+  document.getElementById("btnLimparCascata").disabled = false;
+  toast("success", `${quantidade} jogo(s) de ${tamanhoAlvo} dezenas gerado(s)`, t23Custom ? "Base: suas 23 dezenas" : "Lotofácil · cascata");
+});
+
+document.getElementById("btnLimparCascata").addEventListener("click", () => {
+  state.cascataJogos = [];
+  renderCascata();
+  document.getElementById("btnCopiar").disabled = true;
+  document.getElementById("btnPdf").disabled = true;
+  document.getElementById("btnLimparCascata").disabled = true;
+});
+
+document.getElementById("chkExtra").addEventListener("change", renderCascata);
+
+document.getElementById("btnNavInicio").addEventListener("click", mostrarInicio);
+document.getElementById("sidebarBrand").addEventListener("click", mostrarInicio);
+
+/* ============ Conferidor universal ============ */
+function confConferidor(){ return LOTERIAS[state.conferidor.loteria]; }
+
+function popularSelectConferidor(){
+  const sel = document.getElementById("conferidorLoteria");
+  sel.innerHTML = LOTERIA_KEYS.map(k => `<option value="${k}">${LOTERIAS[k].nome}</option>`).join("");
+  sel.value = state.conferidor.loteria;
+}
+
+// Aceita linhas no formato exportado pelo app ("Jogo 01:  02  05  12...",
+// com ou sem "| espelho:" / "+ extra"), ou apenas dezenas soltas por linha.
+// Quando um jogo foi exportado em PDF e quebrou em mais de uma linha (ex.:
+// Lotomania, com 50 dezenas, não cabe numa linha só), as linhas de
+// continuação (que não começam com "Jogo NN:") são acumuladas junto ao
+// jogo anterior até completar a quantidade mínima de dezenas da
+// modalidade. Isso evita que a quebra de linha do PDF vire um jogo
+// "fantasma" com poucas dezenas.
+function parseJogosMultilinha(texto, c){
+  if(!texto) return { jogos: [], ignoradas: 0 };
+  const linhasComConteudo = texto.split("\n")
+    .filter(l => l.trim() !== "")
+    // descarta cabeçalho/rodapé do PDF exportado (título e data/hora) e
+    // linhas de espelho, que não são jogos a conferir.
+    .filter(l => !/lotolibre/i.test(l))
+    .filter(l => !/^\s*\d{1,2}\/\d{1,2}\/\d{2,4}[,]?\s*\d{1,2}:\d{2}/.test(l))
+    .filter(l => !/^\s*espelho\s*:?/i.test(l));
+
+  const jogos = [];
+  let ignoradas = 0;
+  let acumulado = [];
+
+  function flush(){
+    if(acumulado.length === 0) return;
+    const nums = [...new Set(acumulado)].sort((a,b)=>a-b);
+    if(nums.length >= c.dezenasPorJogo){
+      jogos.push(nums);
+    } else if(nums.length >= 2){
+      // tinha alguns números, mas não o suficiente para ser uma aposta
+      // válida dessa modalidade — ignora em vez de aceitar como jogo errado.
+      ignoradas++;
+    }
+    acumulado = [];
+  }
+
+  linhasComConteudo.forEach(linhaBruta => {
+    const iniciaNovoJogo = /^\s*jogo\s*\d+\s*:?/i.test(linhaBruta);
+    // uma linha "Jogo NN:" sempre encerra o jogo anterior (mesmo que
+    // ele ainda esteja incompleto) antes de começar um novo acúmulo.
+    if(iniciaNovoJogo){
+      flush();
+    }
+    const limpa = linhaBruta
+      .replace(/^\s*jogo\s*\d+\s*:?/i, "")
+      .split("|")[0]
+      .split(/\+\s*extra/i)[0];
+    const nums = limpa.replace(/[^\d]/g, " ").trim().split(/\s+/).filter(Boolean)
+      .map(n => parseInt(n, 10))
+      .filter(n => !isNaN(n) && n >= c.minNumero && n <= c.maxNumero);
+
+    acumulado.push(...nums);
+
+    // assim que atingir a quantidade mínima de dezenas da modalidade,
+    // fecha o jogo — cobre tanto o caso de uma linha só (texto colado
+    // manualmente, um jogo por linha) quanto o de várias linhas de
+    // continuação vindas de um PDF quebrado.
+    if(new Set(acumulado).size >= c.dezenasPorJogo){
+      flush();
+    }
+  });
+  flush();
+
+  return { jogos, ignoradas };
+}
+
+function renderConferidor(){
+  const c = confConferidor();
+  document.getElementById("heroGlowConferidor").style.backgroundColor = c.accent;
+  document.getElementById("statConferidorQtd").textContent = state.conferidor.jogos.length;
+  document.getElementById("qtdConferidorBadge").textContent = `${state.conferidor.jogos.length} jogos`;
+  document.getElementById("btnLimparConferidor").disabled = state.conferidor.jogos.length === 0;
+  document.getElementById("conferidorSorteioDupla").style.display = c.key === "duplasena" ? "block" : "none";
+
+  const empty = document.getElementById("emptyStateConferidor");
+  const list = document.getElementById("conferidorList");
+
+  if(state.conferidor.jogos.length === 0){
+    empty.style.display = "flex";
+    list.style.display = "none";
+    list.innerHTML = "";
+    return;
+  }
+  empty.style.display = "none";
+  list.style.display = "flex";
+
+  list.innerHTML = state.conferidor.jogos.map((jogo, i) => {
+    const soma = jogo.reduce((a,b)=>a+b,0);
+    const acertoBadge = state.conferidor.acertos
+      ? `<span class="acertos-badge" style="background-color:${c.accent}">${state.conferidor.acertos[i]} acertos</span>`
+      : "";
+    const bolas = jogo.map(n => {
+      const hit = state.conferidor.oficiais.includes(n);
+      const style = hit ? `background-color:${c.accent}; color:var(--on-accent);` : "";
+      return `<span class="ball ${hit ? "" : "off"}" style="${style}">${pad(n)}</span>`;
+    }).join("");
+    return `
+      <li class="jogo-card">
+        <div class="jogo-row">
+          <span class="jogo-idx">Jogo ${pad(i+1)} · ${jogo.length} dezenas</span>
+          <div class="jogo-meta">
+            ${acertoBadge}
+            <span class="soma-txt">soma ${soma}</span>
+          </div>
+        </div>
+        <div class="balls">${bolas}</div>
+      </li>
+    `;
+  }).join("");
+}
+
+document.getElementById("conferidorLoteria").addEventListener("change", () => {
+  state.conferidor.loteria = document.getElementById("conferidorLoteria").value;
+  state.conferidor.jogos = [];
+  state.conferidor.oficiais = [];
+  state.conferidor.acertos = null;
+  document.getElementById("conferidorOficial").value = "";
+  document.getElementById("conferidorTexto").value = "";
+  document.getElementById("conferidorNumConcurso").value = "";
+  document.getElementById("labelConcursoConferidor").style.display = "none";
+  renderConferidor();
+  toast("success", `Modalidade alterada para ${confConferidor().nome}`, "A lista de jogos importados foi limpa.");
+});
+
+document.getElementById("btnAdicionarJogos").addEventListener("click", () => {
+  const c = confConferidor();
+  const texto = document.getElementById("conferidorTexto").value;
+  const { jogos, ignoradas } = parseJogosMultilinha(texto, c);
+  if(!jogos.length){
+    toast("error", "Nenhum jogo reconhecido",
+      ignoradas
+        ? `Encontrei ${ignoradas} linha(s) com poucas dezenas para ${c.nome} (mínimo ${c.dezenasPorJogo}). Confira se a modalidade selecionada é a certa.`
+        : "Cole os jogos um por linha, com as dezenas separadas por espaço.");
+    return;
+  }
+  state.conferidor.jogos = state.conferidor.jogos.concat(jogos);
+  state.conferidor.acertos = null;
+  document.getElementById("conferidorTexto").value = "";
+  renderConferidor();
+  toast("success", `${jogos.length} jogo(s) adicionado(s)`,
+    ignoradas ? `${c.nome} · ${ignoradas} linha(s) ignorada(s) por ter menos de ${c.dezenasPorJogo} dezenas` : c.nome);
+});
+
+document.getElementById("btnImportarArquivo").addEventListener("click", () => {
+  document.getElementById("conferidorFileInput").click();
+});
+
+document.getElementById("conferidorFileInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const nomeArquivo = file.name.toLowerCase();
+  try {
+    let texto = "";
+    if(nomeArquivo.endsWith(".pdf")){
+      if(typeof pdfjsLib === "undefined"){
+        toast("error", "Leitor de PDF indisponível", "Importe um arquivo .txt (ex.: o que o botão Copiar gera) ou cole os jogos manualmente.");
+        return;
+      }
+      const buffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      const linhas = [];
+      for(let p = 1; p <= pdf.numPages; p++){
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        let linhaAtual = "";
+        let ultimoY = null;
+        content.items.forEach(item => {
+          const y = item.transform[5];
+          if(ultimoY !== null && Math.abs(y - ultimoY) > 2){
+            linhas.push(linhaAtual);
+            linhaAtual = "";
+          }
+          linhaAtual += " " + item.str;
+          ultimoY = y;
+        });
+        if(linhaAtual) linhas.push(linhaAtual);
+      }
+      texto = linhas.join("\n");
+    } else {
+      texto = await file.text();
+    }
+    const textarea = document.getElementById("conferidorTexto");
+    textarea.value = textarea.value ? (textarea.value + "\n" + texto) : texto;
+    toast("success", "Arquivo carregado", 'Revise o texto e clique em "Adicionar à lista".');
+  } catch(err){
+    toast("error", "Não foi possível ler o arquivo", "Tente colar os jogos manualmente no campo de texto.");
+  } finally {
+    e.target.value = "";
+  }
+});
+
+const btnBuscarConferidor = document.getElementById("btnBuscarConferidor");
+const iconBuscarConferidor = document.getElementById("iconBuscarConferidor");
+btnBuscarConferidor.addEventListener("click", async () => {
+  const c = confConferidor();
+  btnBuscarConferidor.disabled = true;
+  iconBuscarConferidor.classList.add("spin");
+  try {
+    const numConcurso = document.getElementById("conferidorNumConcurso").value;
+    const sorteioDupla = document.getElementById("conferidorSorteioDupla").value;
+    const { dezenas, label } = await buscarConcurso(c, numConcurso, sorteioDupla);
+    document.getElementById("conferidorOficial").value = dezenas.map(pad).join(" ");
+    const lbl = document.getElementById("labelConcursoConferidor");
+    lbl.style.display = "block";
+    lbl.style.color = c.accent;
+    lbl.textContent = label;
+    toast("success", "Resultado encontrado", label);
+  } catch (err) {
+    toast("error", "Não encontrei esse concurso", "Confira o número digitado ou informe as dezenas manualmente.");
+  } finally {
+    btnBuscarConferidor.disabled = false;
+    iconBuscarConferidor.classList.remove("spin");
+  }
+});
+
+document.getElementById("btnConferirTodos").addEventListener("click", () => {
+  const c = confConferidor();
+  const oficiais = parseDezenas(document.getElementById("conferidorOficial").value, c);
+  if(!oficiais.length){
+    toast("error", "Informe as dezenas sorteadas para conferir");
+    return;
+  }
+  if(!state.conferidor.jogos.length){
+    toast("error", "Importe ao menos 1 jogo antes de conferir");
+    return;
+  }
+  state.conferidor.oficiais = oficiais;
+  state.conferidor.acertos = state.conferidor.jogos.map(j => j.filter(n => oficiais.includes(n)).length);
+  renderConferidor();
+  toast("success", "Conferência atualizada", `${state.conferidor.jogos.length} jogo(s) · ${c.nome}`);
+});
+
+document.getElementById("btnLimparConferidor").addEventListener("click", () => {
+  state.conferidor.jogos = [];
+  state.conferidor.oficiais = [];
+  state.conferidor.acertos = null;
+  renderConferidor();
+});
+
+/* ============ Init ============ */
+if(typeof pdfjsLib !== "undefined"){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+renderAll();
+renderCascataMS();
+renderCascataDS();
+renderInicio();
+popularSelectConferidor();
+renderConferidor();
+mostrarInicio();
+
+</script>
+</div>
+
+<script>
+(function(){
+  // Hash da senha de acesso (SHA-256). Não é a senha em si, só a "impressão digital" dela.
+  var ACCESS_HASH = "c97f694dff29a972018ab8c1b95d76c52465b3b2cb87f9402ba124e3019b76dd";
+  var STORAGE_KEY = "lotometrics_unlocked_v1";
+
+  var lockScreen = document.getElementById('lockScreen');
+  var appRoot = document.getElementById('appRoot');
+  var form = document.getElementById('lockForm');
+  var pwdInput = document.getElementById('lockPwd');
+  var err = document.getElementById('lockErr');
+  var btn = document.getElementById('lockBtn');
+
+  async function sha256Hex(str){
+    var enc = new TextEncoder().encode(str);
+    var buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+  }
+
+  function unlockApp(){
+    lockScreen.style.display = 'none';
+    appRoot.style.display = 'block';
+  }
+
+  // Se já foi desbloqueado antes neste navegador, entra direto sem pedir senha de novo.
+  try {
+    if (window.localStorage && localStorage.getItem(STORAGE_KEY) === '1'){
+      unlockApp();
+    }
+  } catch(e){ /* localStorage indisponível (modo privado etc.) - segue pedindo senha */ }
+
+  if (!window.crypto || !window.crypto.subtle){
+    err.textContent = 'Seu navegador não tem suporte a criptografia (Web Crypto API). Use um navegador atualizado (Chrome, Edge ou Firefox).';
+    err.style.display = 'block';
+  }
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    err.style.display = 'none';
+    var pwd = pwdInput.value;
+    btn.disabled = true; btn.textContent = 'Verificando...';
+    try {
+      var hash = await sha256Hex(pwd);
+      if (hash === ACCESS_HASH){
+        try { if (window.localStorage) localStorage.setItem(STORAGE_KEY, '1'); } catch(e2){}
+        unlockApp();
+      } else {
+        err.textContent = 'Senha incorreta. Tente novamente.';
+        err.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Entrar';
+      }
+    } catch(e3){
+      err.textContent = 'Erro ao verificar a senha. Tente novamente.';
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  });
+})();
+</script>
+</body>
+</html>
