@@ -312,27 +312,6 @@
   .cascata-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-glow);}
   .cascata-final{margin-top:.75rem; display:flex; flex-wrap:wrap; gap:.375rem; align-items:center;}
   .ball-extra{border:1.5px dashed var(--accent-lotofacil); background:transparent !important; color:var(--accent-lotofacil) !important;}
-
-  /* ---------- desdobramento ---------- */
-  .desdob-modos{display:flex; flex-wrap:wrap; gap:.5rem;}
-  .desdob-modo-btn{
-    border:1px solid var(--border); background:var(--surface-2); color:var(--muted-foreground);
-    border-radius:.625rem; padding:.5rem .75rem; font-size:.8125rem; font-weight:600;
-    display:inline-flex; align-items:center; gap:.4rem; transition:background-color var(--transition-smooth), color var(--transition-smooth), border-color var(--transition-smooth);
-  }
-  .desdob-modo-btn .dot{width:.5rem; height:.5rem; border-radius:99px; display:inline-block;}
-  .desdob-modo-btn.active{color:var(--foreground); border-color:color-mix(in oklab, var(--accent) 45%, transparent); background:color-mix(in oklab, var(--accent) 16%, var(--surface-2));}
-  .desdob-grid{margin-top:.5rem; display:grid; grid-template-columns:repeat(auto-fill, minmax(2.5rem, 1fr)); gap:.4rem; max-height:16rem; overflow-y:auto; padding:.75rem; border:1px solid var(--border); border-radius:.75rem; background:var(--surface-2);}
-  .ball-pick{
-    display:inline-flex; align-items:center; justify-content:center; width:100%; aspect-ratio:1; border-radius:9999px;
-    font-family:"Space Grotesk"; font-weight:700; font-size:.8125rem; font-variant-numeric:tabular-nums;
-    background:var(--surface); border:1px solid var(--border); color:var(--muted-foreground);
-    transition:transform var(--transition-smooth), background-color var(--transition-smooth), color var(--transition-smooth), border-color var(--transition-smooth);
-  }
-  .ball-pick:hover{transform:translateY(-2px); border-color:var(--accent);}
-  .ball-pick.selected{background-color:var(--accent); border-color:var(--accent); color:var(--on-accent);}
-  .desdob-contador{margin-top:.5rem; font-size:.8125rem; color:var(--muted-foreground); display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap:wrap;}
-  .desdob-contador strong{color:var(--foreground);}
   .toggle-row{display:flex; align-items:center; gap:.5rem; font-size:.8125rem; color:var(--muted-foreground);}
   .switch{position:relative; width:2.5rem; height:1.375rem; flex-shrink:0;}
   .switch input{opacity:0; width:0; height:0;}
@@ -501,7 +480,6 @@
 
     <p class="sidebar-label">Ferramentas</p>
     <nav class="sidebar-nav" id="sidebarNavFerramentas"></nav>
-    <nav class="sidebar-nav" id="sidebarNavDesdobramento"></nav>
 
     <p class="sidebar-label">Novidades</p>
     <nav class="sidebar-nav" id="sidebarNavChangelog"></nav>
@@ -889,75 +867,83 @@
         </div>
       </div>
 
-      <div id="viewDesdobramento" style="display:none;">
+      <div id="viewCascataDia" style="display:none;">
         <section class="hero">
-          <div class="hero-glow" id="desdobGlow"></div>
-          <p class="hero-eyebrow">Ferramenta · Desdobramento</p>
-          <h2>Transforme suas dezenas em vários jogos</h2>
-          <p>Escolha a modalidade, marque as dezenas que você quer usar (mais do que cabe em um jogo) e o app monta a quantidade de jogos que você pedir, aplicando os mesmos filtros base (soma proporcional e limite de consecutivos) daquela modalidade.</p>
+          <div class="hero-glow" style="background-color:var(--accent-diadesorte);"></div>
+          <p class="hero-eyebrow">Motor especial · Cascata fixa</p>
+          <h2>Dia de Sorte em cascata: 22 → 19 → 15 / 15 → 12 / 9 → jogo</h2>
+          <p>Duas trilhas fixas extraídas da sua planilha (universo 1 a 31): a principal reduz 3 tabelas de 22 dezenas até 19 e depois até 15; a segunda parte de uma tabela fixa de 15 dezenas e reduz até 12 ou até 9. O jogo final (7 a 15 dezenas, como o Dia de Sorte permite apostar) sai da trilha mais próxima do tamanho pedido — quando o tamanho não existe pronto na planilha, tiramos o excedente aleatoriamente da tabela pronta mais próxima, do mesmo jeito que a Cascata da Lotofácil faz pros tamanhos 20 e 18.</p>
 
           <dl class="stat-grid">
-            <div class="stat-card"><dt>Dezenas escolhidas</dt><dd id="desdobStatEscolhidas">0</dd></div>
-            <div class="stat-card"><dt>Tamanho do jogo</dt><dd id="desdobStatTamanho">6</dd></div>
-            <div class="stat-card"><dt>Universo da modalidade</dt><dd id="desdobStatUniverso">1–60</dd></div>
+            <div class="stat-card"><dt>Tabelas de 22</dt><dd>3 ativas</dd></div>
+            <div class="stat-card"><dt>Padrões 22→19 / 19→15</dt><dd>6 / 8</dd></div>
+            <div class="stat-card"><dt>Padrões 15→12 / 15→9</dt><dd>5 / 8</dd></div>
+            <div class="stat-card"><dt>Dezenas por jogo</dt><dd id="statTamanhoDia">7</dd></div>
           </dl>
         </section>
 
         <div class="grid-cols">
           <section class="panel panel-fit">
-            <h3>Parâmetros do desdobramento</h3>
+            <h3>Gerar pela cascata</h3>
             <div class="stack">
               <div class="field">
-                <span class="field-label">Modalidade</span>
-                <div class="desdob-modos" id="desdobModos"></div>
+                <label for="qtdCascataDia" class="field-label">Quantidade de jogos</label>
+                <input id="qtdCascataDia" type="number" min="1" max="200" value="10" class="input input-h">
               </div>
 
               <div class="field">
-                <div class="desdob-contador">
-                  <span>Dezenas: <strong id="desdobContador">0</strong> selecionadas</span>
-                  <button class="btn btn-ghost btn-sm" id="btnDesdobLimparSelecao" style="padding:.35rem .6rem;">Limpar seleção</button>
-                </div>
-                <div class="desdob-grid" id="desdobGrid"></div>
+                <label for="tamanhoCascataDia" class="field-label">Quantidade de dezenas por jogo</label>
+                <select id="tamanhoCascataDia" class="select input-h">
+                  <option value="7" selected>7 dezenas</option>
+                  <option value="8">8 dezenas</option>
+                  <option value="9">9 dezenas</option>
+                  <option value="10">10 dezenas</option>
+                  <option value="11">11 dezenas</option>
+                  <option value="12">12 dezenas</option>
+                  <option value="13">13 dezenas</option>
+                  <option value="14">14 dezenas</option>
+                  <option value="15">15 dezenas</option>
+                </select>
               </div>
 
-              <div class="field">
-                <label for="desdobTamanho" class="field-label">Tamanho de cada jogo</label>
-                <input id="desdobTamanho" type="number" min="6" max="15" value="6" class="input input-h">
-                <p id="desdobTamanhoHint" style="margin-top:.375rem; font-size:12px; color:var(--muted-foreground);"></p>
+              <div class="criterios-box">
+                <p>Como funciona</p>
+                <ul style="margin-top:.75rem; padding:0; list-style:none; display:flex; flex-direction:column; gap:.5rem; font-size:.875rem; color:var(--foreground);">
+                  <li><span class="dot" style="background-color:var(--accent-diadesorte)"></span>13-15 dezenas: escolhe 1 das 3 tabelas de 22 → aplica 1 dos 6 padrões até 19 → aplica 1 dos 8 padrões até 15</li>
+                  <li><span class="dot" style="background-color:var(--accent-diadesorte)"></span>10-12 dezenas: aplica 1 dos 5 padrões da tabela fixa de 15 até 12</li>
+                  <li><span class="dot" style="background-color:var(--accent-diadesorte)"></span>7-9 dezenas: aplica 1 dos 8 padrões da tabela fixa de 15 até 9</li>
+                  <li><span class="dot" style="background-color:var(--accent-diadesorte)"></span>Quando o tamanho pedido é menor que a tabela pronta, remove o excedente aleatoriamente e valida soma/consecutivos</li>
+                  <li><span class="dot" style="background-color:var(--accent-diadesorte)"></span>Pedidos maiores avançam o cursor pra outras combinações (cascata)</li>
+                </ul>
               </div>
 
-              <div class="field">
-                <label for="desdobQtd" class="field-label">Quantidade de jogos</label>
-                <input id="desdobQtd" type="number" min="1" max="200" value="10" class="input input-h">
-              </div>
-
-              <button class="btn btn-primary btn-full" id="btnGerarDesdobramento">
+              <button class="btn btn-primary btn-full" id="btnGerarCascataDia">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2 11 5"/></svg>
-                Gerar desdobramento
+                Gerar cascata
               </button>
             </div>
           </section>
 
           <section class="panel" style="display:flex; min-height:420px; flex-direction:column;">
             <div class="results-head">
-              <h3>Jogos do desdobramento</h3>
+              <h3>Jogos da cascata</h3>
               <div class="jogo-meta">
-                <span class="badge-count" id="qtdDesdobBadge">0 jogos</span>
-                <button class="btn btn-ghost btn-sm" id="btnLimparDesdobramento" disabled style="padding:.5rem;">
+                <span class="badge-count" id="qtdCascataDiaBadge">0 jogos</span>
+                <button class="btn btn-ghost btn-sm" id="btnLimparCascataDia" disabled style="padding:.5rem;">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
                 </button>
               </div>
             </div>
 
-            <div id="emptyStateDesdobramento" class="empty-state">
+            <div id="emptyStateCascataDia" class="empty-state">
               <span class="empty-icon">
                 <svg class="icon" style="width:1.5rem;height:1.5rem;" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/></svg>
               </span>
-              <p>Nenhum desdobramento gerado ainda</p>
-              <p>Escolha a modalidade, marque as dezenas e clique em "Gerar desdobramento".</p>
+              <p>Nenhuma cascata gerada ainda</p>
+              <p>Clique em "Gerar cascata" para percorrer as tabelas da planilha.</p>
             </div>
 
-            <ul id="desdobList" class="jogos-list" style="display:none;"></ul>
+            <ul id="cascataDiaList" class="jogos-list" style="display:none;"></ul>
           </section>
         </div>
       </div>
@@ -1160,16 +1146,6 @@ const LOTERIAS = {
   },
 };
 const LOTERIA_KEYS = Object.keys(LOTERIAS);
-
-// Faixa de tamanho de jogo aceita pelo desdobramento em cada modalidade
-// (mesmas faixas de aposta múltipla já usadas nas cascatas — Lotomania tem tamanho fixo).
-const DESDOB_TAMANHO = {
-  megasena: { min: 6, max: 15 },
-  lotofacil: { min: 15, max: 20 },
-  duplasena: { min: 6, max: 12 },
-  lotomania: { min: 50, max: 50 },
-  diadesorte: { min: 7, max: 15 },
-};
 
 // Página oficial de cada modalidade no Portal Loterias da Caixa — usada no link "Mais detalhes"
 const URL_DETALHES_CAIXA = {
@@ -1905,6 +1881,159 @@ function gerarCascataDuplaSena(quantidade, tamanho){
   return jogos;
 }
 
+/* ============ Motor Cascata Dia de Sorte (extraído de dia_de_sorte_CLOUD.ods) ============ */
+/* A planilha tem duas trilhas independentes, ambas no universo 1-31:
+   Trilha A (aba "MATRIZ GERADORA"): 3 tabelas fixas de 22 dezenas → reduzidas
+   por PADRÕES POSICIONAIS (ranks 0-based, igual à Cascata da Lotofácil) até
+   19 dezenas (6 padrões válidos das 7 da planilha — a 7ª tinha uma referência
+   quebrada na sua planilha e foi descartada), e dessas 19 até 15 dezenas
+   (8 padrões). Como a seleção é posicional, os mesmos padrões funcionam sobre
+   qualquer uma das 3 tabelas de 22 e sobre qualquer resultado de 19.
+   Trilha B: uma tabela fixa única de 15 dezenas (independente da Trilha A),
+   reduzida por padrões posicionais até 12 dezenas (5 padrões) ou direto até
+   9 dezenas (8 padrões).
+   O Dia de Sorte permite apostar de 7 a 15 dezenas. Os tamanhos 7, 8, 10, 11,
+   13 e 14 não existem prontos na planilha — pra esses, pegamos a tabela pronta
+   mais próxima (15, 12 ou 9) e tiramos o excedente aleatoriamente, do mesmo
+   jeito que a Cascata da Lotofácil faz pros tamanhos 20 e 18 (não vem da
+   planilha, mas mantém a base fixa). */
+
+const DDS_TABELAS_22 = [
+  [2, 3, 5, 6, 8, 9, 10, 12, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31],
+  [1, 2, 4, 6, 7, 8, 10, 11, 13, 14, 15, 16, 19, 20, 22, 24, 25, 26, 27, 28, 29, 30],
+  [1, 3, 4, 5, 7, 8, 10, 11, 12, 13, 15, 17, 18, 20, 21, 23, 24, 27, 28, 29, 30, 31],
+];
+
+const DDS_RANKS_19 = [
+  [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 21],
+  [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 20, 21],
+  [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 19, 20, 21],
+  [0, 1, 2, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21],
+  [0, 1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21],
+  [0, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21],
+];
+
+const DDS_RANKS_15 = [
+  [0, 1, 3, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 16, 17],
+  [0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+  [0, 1, 2, 3, 5, 6, 7, 8, 10, 11, 14, 15, 16, 17, 18],
+  [0, 1, 2, 3, 4, 5, 6, 8, 9, 12, 13, 14, 16, 17, 18],
+  [2, 3, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 15, 17, 18],
+  [0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 18],
+  [0, 1, 3, 5, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18],
+];
+
+const DDS_BASE_15 = [1, 3, 4, 7, 8, 11, 12, 15, 17, 18, 21, 24, 27, 28, 31];
+
+const DDS_RANKS_12 = [
+  [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+  [0, 1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 14],
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14],
+  [0, 1, 2, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+];
+
+const DDS_RANKS_9 = [
+  [0, 1, 2, 3, 4, 5, 6, 7, 8],
+  [0, 1, 2, 3, 4, 5, 9, 10, 11],
+  [0, 1, 2, 3, 4, 5, 12, 13, 14],
+  [0, 1, 2, 6, 7, 8, 9, 10, 11],
+  [6, 7, 8, 9, 10, 11, 12, 13, 14],
+  [0, 1, 2, 6, 7, 8, 12, 13, 14],
+  [0, 1, 2, 9, 10, 11, 12, 13, 14],
+  [3, 4, 5, 6, 7, 8, 12, 13, 14],
+];
+
+function ddsAplicarRank(baseOrdenado, ranks){
+  return ranks.map(i => baseOrdenado[i]);
+}
+
+function ddsGerarTabelasA(idxT22, idxR19, idxR15){
+  const t22 = [...DDS_TABELAS_22[idxT22]].sort((a,b)=>a-b);
+  const t19 = ddsAplicarRank(t22, DDS_RANKS_19[idxR19]).sort((a,b)=>a-b);
+  const t15 = ddsAplicarRank(t19, DDS_RANKS_15[idxR15]).sort((a,b)=>a-b);
+  return { t22, t19, t15 };
+}
+function ddsGerarTabelasB12(idxR12){
+  const t12 = ddsAplicarRank(DDS_BASE_15, DDS_RANKS_12[idxR12]).sort((a,b)=>a-b);
+  return { t15b: DDS_BASE_15, t12 };
+}
+function ddsGerarTabelasB9(idxR9){
+  const t9 = ddsAplicarRank(DDS_BASE_15, DDS_RANKS_9[idxR9]).sort((a,b)=>a-b);
+  return { t15b: DDS_BASE_15, t9 };
+}
+
+function ddsRemoverAleatorio(arr, qtdRemover){
+  const pool = [...arr];
+  for(let i=0; i<qtdRemover && pool.length; i++){
+    pool.splice(Math.floor(Math.random()*pool.length), 1);
+  }
+  return pool.sort((a,b)=>a-b);
+}
+
+function ddsJogoValido(jogo){
+  const conf = LOTERIAS.diadesorte;
+  const somaMin = Math.round(conf.somaMin * jogo.length / conf.dezenasPorJogo);
+  const somaMax = Math.round(conf.somaMax * jogo.length / conf.dezenasPorJogo);
+  return validarSequencia(jogo, { maxConsecutivos: conf.maxConsecutivos })
+      && validarSoma(jogo, { somaMin, somaMax });
+}
+
+const DDS_COMBOS_A = (() => {
+  const c = [];
+  for(let a=0; a<DDS_TABELAS_22.length; a++)
+    for(let b=0; b<DDS_RANKS_19.length; b++)
+      for(let d=0; d<DDS_RANKS_15.length; d++)
+        c.push({ idxT22:a, idxR19:b, idxR15:d });
+  return c;
+})();
+
+let ddsCursorA = 0, ddsCursorB12 = 0, ddsCursorB9 = 0;
+
+function gerarCascataDiaDeSorte(quantidade, tamanho){
+  tamanho = Math.min(Math.max(tamanho || 7, 7), 15);
+  const jogos = [];
+  const vistos = new Set();
+  let tentativasGlobais = 0;
+  const limiteGlobal = Math.max(quantidade * 300, 3000);
+
+  while(jogos.length < quantidade && tentativasGlobais < limiteGlobal){
+    tentativasGlobais++;
+    let trilha, universoFinal, nativo;
+
+    if(tamanho >= 13){
+      const combo = DDS_COMBOS_A[ddsCursorA % DDS_COMBOS_A.length]; ddsCursorA++;
+      const t = ddsGerarTabelasA(combo.idxT22, combo.idxR19, combo.idxR15);
+      trilha = { ramo:"A", idxT22:combo.idxT22, idxR19:combo.idxR19, idxR15:combo.idxR15, t22:t.t22, t19:t.t19, t15:t.t15 };
+      universoFinal = t.t15; nativo = 15;
+    } else if(tamanho >= 10){
+      const idx = ddsCursorB12 % DDS_RANKS_12.length; ddsCursorB12++;
+      const t = ddsGerarTabelasB12(idx);
+      trilha = { ramo:"B12", idxR12:idx, t15b:t.t15b, t12:t.t12 };
+      universoFinal = t.t12; nativo = 12;
+    } else {
+      const idx = ddsCursorB9 % DDS_RANKS_9.length; ddsCursorB9++;
+      const t = ddsGerarTabelasB9(idx);
+      trilha = { ramo:"B9", idxR9:idx, t15b:t.t15b, t9:t.t9 };
+      universoFinal = t.t9; nativo = 9;
+    }
+
+    const remover = nativo - tamanho;
+    let jogo = null;
+    for(let tent=0; tent<50; tent++){
+      const cand = remover > 0 ? ddsRemoverAleatorio(universoFinal, remover) : [...universoFinal].sort((a,b)=>a-b);
+      if(ddsJogoValido(cand)){ jogo = cand; break; }
+    }
+    if(!jogo) continue;
+    const chave = jogo.join(",");
+    if(vistos.has(chave)) continue;
+    vistos.add(chave);
+    jogos.push({ ...trilha, resultado: jogo });
+  }
+  return jogos;
+}
+
 function pad(n){ return String(n).padStart(2, "0"); }
 
 function parseDezenas(texto, conf){
@@ -2135,13 +2264,8 @@ const state = {
   cascataJogos: [],
   cascataMSJogos: [],
   cascataDSJogos: [],
+  cascataDiaJogos: [],
   avisoCriterioParcial: false,
-  desdobramento: {
-    loteria: "megasena",
-    selecionadas: [],
-    tamanho: 6,
-    jogos: [],
-  },
   conferidor: {
     loteria: "megasena",
     jogos: [],
@@ -2227,6 +2351,20 @@ function renderSidebar(){
   });
   navEsp.appendChild(btnCascataDS);
 
+  const ativoCascataDia = state.modo === "cascata-diadesorte";
+  const btnCascataDia = document.createElement("button");
+  btnCascataDia.className = "nav-item" + (ativoCascataDia ? " active" : "");
+  if(ativoCascataDia) btnCascataDia.style.boxShadow = "inset 3px 0 0 0 var(--accent-diadesorte)";
+  btnCascataDia.innerHTML = `
+    <span class="nav-badge" style="background-color:var(--accent-diadesorte)">CX</span>
+    <span class="nav-name">Dia de Sorte · Cascata</span>
+  `;
+  btnCascataDia.addEventListener("click", () => {
+    trocarModo("cascata-diadesorte");
+    closeSidebar();
+  });
+  navEsp.appendChild(btnCascataDia);
+
   const navFerr = document.getElementById("sidebarNavFerramentas");
   navFerr.innerHTML = "";
   const ativoConferidor = state.modo === "conferidor";
@@ -2244,24 +2382,6 @@ function renderSidebar(){
     closeSidebar();
   });
   navFerr.appendChild(btnConferidor);
-
-  const navDesdob = document.getElementById("sidebarNavDesdobramento");
-  navDesdob.innerHTML = "";
-  const ativoDesdob = state.modo === "desdobramento";
-  const btnDesdob = document.createElement("button");
-  btnDesdob.className = "nav-item" + (ativoDesdob ? " active" : "");
-  if(ativoDesdob) btnDesdob.style.boxShadow = "inset 3px 0 0 0 var(--primary)";
-  btnDesdob.innerHTML = `
-    <span class="nav-badge" style="background-color:var(--primary)">
-      <svg class="icon" style="width:16px;height:16px;" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
-    </span>
-    <span class="nav-name">Desdobramento</span>
-  `;
-  btnDesdob.addEventListener("click", () => {
-    trocarModo("desdobramento");
-    closeSidebar();
-  });
-  navDesdob.appendChild(btnDesdob);
 
   const navChangelog = document.getElementById("sidebarNavChangelog");
   navChangelog.innerHTML = "";
@@ -2288,22 +2408,22 @@ function trocarModo(modo){
   document.getElementById("viewCascata").style.display = modo === "cascata-lotofacil" ? "" : "none";
   document.getElementById("viewCascataMS").style.display = modo === "cascata-megasena" ? "" : "none";
   document.getElementById("viewCascataDS").style.display = modo === "cascata-duplasena" ? "" : "none";
+  document.getElementById("viewCascataDia").style.display = modo === "cascata-diadesorte" ? "" : "none";
   document.getElementById("viewConferidor").style.display = modo === "conferidor" ? "" : "none";
   document.getElementById("viewChangelog").style.display = modo === "changelog" ? "" : "none";
-  document.getElementById("viewDesdobramento").style.display = modo === "desdobramento" ? "" : "none";
   document.getElementById("tituloLoteria").textContent =
     modo === "cascata-lotofacil" ? "Lotofácil · Cascata" :
     modo === "cascata-megasena" ? "Mega-Sena · Cascata" :
     modo === "cascata-duplasena" ? "Dupla Sena · Cascata" :
+    modo === "cascata-diadesorte" ? "Dia de Sorte · Cascata" :
     modo === "conferidor" ? "Conferidor" :
-    modo === "changelog" ? "O que mudou" :
-    modo === "desdobramento" ? "Desdobramento" : conf().nome;
+    modo === "changelog" ? "O que mudou" : conf().nome;
   const semJogos = modo === "cascata-lotofacil" ? state.cascataJogos.length === 0
     : modo === "cascata-megasena" ? state.cascataMSJogos.length === 0
     : modo === "cascata-duplasena" ? state.cascataDSJogos.length === 0
+    : modo === "cascata-diadesorte" ? state.cascataDiaJogos.length === 0
     : modo === "conferidor" ? true
     : modo === "changelog" ? true
-    : modo === "desdobramento" ? state.desdobramento.jogos.length === 0
     : state.jogos.length === 0;
   document.getElementById("btnCopiar").disabled = semJogos;
   document.getElementById("btnPdf").disabled = semJogos;
@@ -2447,191 +2567,6 @@ function renderResultados(){
   }).join("");
 }
 
-/* ============ Desdobramento ============ */
-function desdobConf(){ return LOTERIAS[state.desdobramento.loteria]; }
-
-function renderDesdobModos(){
-  const wrap = document.getElementById("desdobModos");
-  wrap.innerHTML = LOTERIA_KEYS.map(k => {
-    const c = LOTERIAS[k];
-    const active = k === state.desdobramento.loteria;
-    return `<button type="button" class="desdob-modo-btn${active ? " active" : ""}" data-k="${k}">
-      <span class="dot" style="background-color:${c.accent}"></span>${c.nome}
-    </button>`;
-  }).join("");
-  wrap.querySelectorAll(".desdob-modo-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const k = btn.dataset.k;
-      if(state.desdobramento.loteria === k) return;
-      state.desdobramento.loteria = k;
-      state.desdobramento.selecionadas = [];
-      state.desdobramento.tamanho = DESDOB_TAMANHO[k].min;
-      renderDesdobModos();
-      renderDesdobGrid();
-      atualizarDesdobParams();
-    });
-  });
-}
-
-function renderDesdobGrid(){
-  const c = desdobConf();
-  const grid = document.getElementById("desdobGrid");
-  const sel = new Set(state.desdobramento.selecionadas);
-  let html = "";
-  for(let n = c.minNumero; n <= c.maxNumero; n++){
-    const on = sel.has(n);
-    html += `<button type="button" class="ball-pick${on ? " selected" : ""}" data-n="${n}" style="${on ? `background-color:${c.accent}; border-color:${c.accent};` : ""}">${pad(n)}</button>`;
-  }
-  grid.innerHTML = html;
-  grid.querySelectorAll(".ball-pick").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const n = parseInt(btn.dataset.n, 10);
-      const arr = state.desdobramento.selecionadas;
-      const idx = arr.indexOf(n);
-      if(idx >= 0) arr.splice(idx, 1);
-      else arr.push(n);
-      renderDesdobGrid();
-      atualizarDesdobParams();
-    });
-  });
-  document.getElementById("desdobContador").textContent = String(state.desdobramento.selecionadas.length);
-  document.getElementById("desdobStatEscolhidas").textContent = String(state.desdobramento.selecionadas.length);
-  document.getElementById("desdobStatUniverso").textContent = `${pad(c.minNumero)}–${pad(c.maxNumero)}`;
-}
-
-function atualizarDesdobParams(){
-  const c = desdobConf();
-  const faixa = DESDOB_TAMANHO[state.desdobramento.loteria];
-  const n = state.desdobramento.selecionadas.length;
-  const tamanhoInput = document.getElementById("desdobTamanho");
-
-  tamanhoInput.min = faixa.min;
-  tamanhoInput.max = faixa.max;
-  if(faixa.min === faixa.max){
-    tamanhoInput.value = faixa.min;
-    tamanhoInput.disabled = true;
-  } else {
-    tamanhoInput.disabled = false;
-    const maxPossivel = Math.min(faixa.max, Math.max(faixa.min, n - 1));
-    if(parseInt(tamanhoInput.value, 10) > maxPossivel) tamanhoInput.value = maxPossivel;
-    if(parseInt(tamanhoInput.value, 10) < faixa.min) tamanhoInput.value = faixa.min;
-  }
-  state.desdobramento.tamanho = parseInt(tamanhoInput.value, 10) || faixa.min;
-  document.getElementById("desdobStatTamanho").textContent = String(state.desdobramento.tamanho);
-
-  const hint = document.getElementById("desdobTamanhoHint");
-  hint.textContent = faixa.min === faixa.max
-    ? `${c.nome} tem tamanho de jogo fixo: ${faixa.min} dezenas.`
-    : `Aceita de ${faixa.min} a ${faixa.max} dezenas por jogo nessa modalidade. Escolha mais dezenas do que o tamanho do jogo.`;
-
-  document.getElementById("btnGerarDesdobramento").disabled = n <= state.desdobramento.tamanho;
-}
-
-document.getElementById("desdobTamanho").addEventListener("input", atualizarDesdobParams);
-
-document.getElementById("btnDesdobLimparSelecao").addEventListener("click", () => {
-  state.desdobramento.selecionadas = [];
-  renderDesdobGrid();
-  atualizarDesdobParams();
-});
-
-function desdobJogoValido(jogo, c, tamanho){
-  if(c.maxConsecutivos && !validarSequencia(jogo, c)) return false;
-  const fator = tamanho / c.dezenasPorJogo;
-  const somaMin = Math.round(c.somaMin * fator);
-  const somaMax = Math.round(c.somaMax * fator);
-  return validarSoma(jogo, { somaMin, somaMax });
-}
-
-function desdobSortear(universo, tamanho, c, maxTentativas){
-  for(let t = 0; t < (maxTentativas || 400); t++){
-    const jogo = sortearJogoAleatorio(universo, tamanho).sort((a,b)=>a-b);
-    if(desdobJogoValido(jogo, c, tamanho)) return jogo;
-  }
-  return null;
-}
-
-function gerarDesdobramento(){
-  const c = desdobConf();
-  const d = state.desdobramento;
-  const universo = [...d.selecionadas];
-  const tamanho = d.tamanho;
-  const quantidadeInput = parseInt(document.getElementById("desdobQtd").value, 10) || 1;
-  const quantidade = Math.min(Math.max(quantidadeInput, 1), 200);
-
-  const jogos = [];
-  const vistos = new Set();
-  const limiteGlobal = Math.max(quantidade * 300, 3000);
-  let tentativas = 0;
-  while(jogos.length < quantidade && tentativas < limiteGlobal){
-    tentativas++;
-    const jogo = desdobSortear(universo, tamanho, c);
-    if(!jogo) continue;
-    const chave = jogo.join(",");
-    if(vistos.has(chave)) continue;
-    vistos.add(chave);
-    jogos.push(jogo);
-  }
-  return { jogos, quantidade };
-}
-
-function renderDesdobramento(){
-  const list = document.getElementById("desdobList");
-  const empty = document.getElementById("emptyStateDesdobramento");
-  const jogos = state.desdobramento.jogos;
-  document.getElementById("qtdDesdobBadge").textContent = `${jogos.length} jogos`;
-  document.getElementById("btnLimparDesdobramento").disabled = jogos.length === 0;
-  if(jogos.length === 0){
-    empty.style.display = "flex";
-    list.style.display = "none";
-    list.innerHTML = "";
-    return;
-  }
-  empty.style.display = "none";
-  list.style.display = "flex";
-  const c = desdobConf();
-  list.innerHTML = jogos.map((jogo, i) => {
-    const soma = jogo.reduce((a,b)=>a+b, 0);
-    const bolas = jogo.map(n => `<span class="ball" style="background-color:${c.accent}; color:var(--on-accent);">${pad(n)}</span>`).join("");
-    return `
-      <li class="cascata-card">
-        <div class="jogo-row">
-          <span class="jogo-idx">Jogo ${pad(i+1)} · ${jogo.length} dezenas</span>
-          <span class="soma-txt">soma ${soma}</span>
-        </div>
-        <div class="balls">${bolas}</div>
-      </li>
-    `;
-  }).join("");
-}
-
-document.getElementById("btnGerarDesdobramento").addEventListener("click", () => {
-  const d = state.desdobramento;
-  if(d.selecionadas.length <= d.tamanho){
-    toast("error", "Selecione mais dezenas", `Escolha mais do que ${d.tamanho} dezenas para desdobrar em jogos desse tamanho.`);
-    return;
-  }
-  const { jogos, quantidade } = gerarDesdobramento();
-  state.desdobramento.jogos = jogos;
-  renderDesdobramento();
-  document.getElementById("btnCopiar").disabled = jogos.length === 0;
-  document.getElementById("btnPdf").disabled = jogos.length === 0;
-  if(jogos.length < quantidade){
-    toast("error", `Só consegui ${jogos.length} de ${quantidade} jogo(s)`, "As dezenas escolhidas e os filtros da modalidade limitam quantas combinações únicas cabem.");
-  } else {
-    toast("success", `${jogos.length} jogo(s) gerado(s)`, `Desdobramento · ${desdobConf().nome}`);
-  }
-});
-
-document.getElementById("btnLimparDesdobramento").addEventListener("click", () => {
-  state.desdobramento.jogos = [];
-  renderDesdobramento();
-  if(state.modo === "desdobramento"){
-    document.getElementById("btnCopiar").disabled = true;
-    document.getElementById("btnPdf").disabled = true;
-  }
-});
-
 /* ============ Ações ============ */
 document.getElementById("btnGerar").addEventListener("click", () => {
   const c = conf();
@@ -2688,8 +2623,8 @@ document.getElementById("btnCopiar").addEventListener("click", () => {
     texto = state.cascataMSJogos.map(j => j.resultado.map(pad).join(" ")).join("\n");
   } else if(state.modo === "cascata-duplasena"){
     texto = state.cascataDSJogos.map(j => j.resultado.map(pad).join(" ")).join("\n");
-  } else if(state.modo === "desdobramento"){
-    texto = state.desdobramento.jogos.map(j => j.map(pad).join(" ")).join("\n");
+  } else if(state.modo === "cascata-diadesorte"){
+    texto = state.cascataDiaJogos.map(j => j.resultado.map(pad).join(" ")).join("\n");
   } else {
     texto = state.jogos.map((j,i) => {
       const linha = j.map(pad).join(" ");
@@ -2781,19 +2716,17 @@ document.getElementById("btnPdf").addEventListener("click", () => {
     return;
   }
 
-  if(state.modo === "desdobramento"){
-    const dc = desdobConf();
-    const d = state.desdobramento;
-    doc.text(`LotoMetrics Pro IA — Desdobramento (${dc.nome})`, 14, 18);
+  if(state.modo === "cascata-diadesorte"){
+    const tam = state.cascataDiaJogos[0] ? state.cascataDiaJogos[0].resultado.length : document.getElementById("tamanhoCascataDia").value;
+    doc.text(`LotoMetrics Pro IA — Dia de Sorte Cascata (22→19→15 / 15→12/9→${tam})`, 14, 18);
     doc.setFontSize(10);
     doc.text(new Date().toLocaleString("pt-BR"), 14, 25);
-    let y = pdfEscreverLinha(doc, `Dezenas escolhidas (${d.selecionadas.length}): ${[...d.selecionadas].sort((a,b)=>a-b).map(pad).join(" ")}`, 14, 31, { indent: 0 });
-    y += 6;
-    d.jogos.forEach((jogo, i) => {
-      y = pdfEscreverLinha(doc, `Jogo ${pad(i+1)}:  ${jogo.map(pad).join("  ")}`, 14, y, { indent: 22 });
+    let y = 36;
+    state.cascataDiaJogos.forEach((j, i) => {
+      y = pdfEscreverLinha(doc, `Jogo ${pad(i+1)}:  ${j.resultado.map(pad).join("  ")}`, 14, y, { indent: 22 });
       y += 2.5;
     });
-    doc.save(`jogos-desdobramento-${dc.key}.pdf`);
+    doc.save("jogos-diadesorte-cascata.pdf");
     return;
   }
 
@@ -3071,6 +3004,101 @@ document.getElementById("btnLimparCascataDS").addEventListener("click", () => {
   document.getElementById("btnCopiar").disabled = true;
   document.getElementById("btnPdf").disabled = true;
   document.getElementById("btnLimparCascataDS").disabled = true;
+});
+
+/* ============ Cascata Dia de Sorte: render + ações ============ */
+function renderCascataDia(){
+  document.getElementById("qtdCascataDiaBadge").textContent = `${state.cascataDiaJogos.length} jogos`;
+  const empty = document.getElementById("emptyStateCascataDia");
+  const list = document.getElementById("cascataDiaList");
+
+  if(state.cascataDiaJogos.length === 0){
+    empty.style.display = "flex";
+    list.style.display = "none";
+    list.innerHTML = "";
+    return;
+  }
+  empty.style.display = "none";
+  list.style.display = "flex";
+
+  list.innerHTML = state.cascataDiaJogos.map((j, i) => {
+    const soma = j.resultado.reduce((a,b)=>a+b,0);
+    const bolas = j.resultado.map(n =>
+      `<span class="ball" style="background-color:var(--accent-diadesorte); color:var(--on-accent);">${pad(n)}</span>`
+    ).join("");
+    const trilhaHtml = j.ramo === "A"
+      ? `
+        <div class="trilha-etapa"><span class="n">22</span><span class="l">tabela ${j.idxT22+1}</span></div>
+        <span class="trilha-seta">→</span>
+        <div class="trilha-etapa"><span class="n">19</span><span class="l">padrão ${j.idxR19+1}</span></div>
+        <span class="trilha-seta">→</span>
+        <div class="trilha-etapa"><span class="n">15</span><span class="l">padrão ${j.idxR15+1}</span></div>
+        <span class="trilha-seta">→</span>
+        <div class="trilha-etapa" style="border-color:var(--accent-diadesorte);"><span class="n">${j.resultado.length}</span><span class="l">jogo</span></div>
+      `
+      : j.ramo === "B12"
+      ? `
+        <div class="trilha-etapa"><span class="n">15</span><span class="l">tabela fixa</span></div>
+        <span class="trilha-seta">→</span>
+        <div class="trilha-etapa"><span class="n">12</span><span class="l">padrão ${j.idxR12+1}</span></div>
+        <span class="trilha-seta">→</span>
+        <div class="trilha-etapa" style="border-color:var(--accent-diadesorte);"><span class="n">${j.resultado.length}</span><span class="l">jogo</span></div>
+      `
+      : `
+        <div class="trilha-etapa"><span class="n">15</span><span class="l">tabela fixa</span></div>
+        <span class="trilha-seta">→</span>
+        <div class="trilha-etapa"><span class="n">9</span><span class="l">padrão ${j.idxR9+1}</span></div>
+        <span class="trilha-seta">→</span>
+        <div class="trilha-etapa" style="border-color:var(--accent-diadesorte);"><span class="n">${j.resultado.length}</span><span class="l">jogo</span></div>
+      `;
+    const detalheHtml = j.ramo === "A"
+      ? `22 dezenas: ${j.t22.map(pad).join(", ")}<br>19 dezenas: ${j.t19.map(pad).join(", ")}<br>15 dezenas: ${j.t15.map(pad).join(", ")}`
+      : j.ramo === "B12"
+      ? `15 dezenas (fixa): ${j.t15b.map(pad).join(", ")}<br>12 dezenas: ${j.t12.map(pad).join(", ")}`
+      : `15 dezenas (fixa): ${j.t15b.map(pad).join(", ")}<br>9 dezenas: ${j.t9.map(pad).join(", ")}`;
+    return `
+      <li class="cascata-card">
+        <div class="jogo-row">
+          <span class="jogo-idx">Jogo ${pad(i+1)} · ${j.resultado.length} dezenas</span>
+          <span class="soma-txt">soma ${soma}</span>
+        </div>
+        <div class="balls">${bolas}</div>
+        <details class="trilha-details">
+          <summary>Ver trilha da cascata</summary>
+          <div class="trilha">${trilhaHtml}</div>
+          <div style="margin-top:.5rem; font-size:11px; color:var(--muted-foreground); line-height:1.6;">${detalheHtml}</div>
+        </details>
+      </li>
+    `;
+  }).join("");
+}
+
+document.getElementById("btnGerarCascataDia").addEventListener("click", () => {
+  const qtdInput = parseInt(document.getElementById("qtdCascataDia").value, 10) || 1;
+  const quantidade = Math.min(Math.max(qtdInput, 1), 200);
+  const tamanho = Math.min(Math.max(parseInt(document.getElementById("tamanhoCascataDia").value, 10) || 7, 7), 15);
+  document.getElementById("statTamanhoDia").textContent = tamanho;
+
+  const jogos = gerarCascataDiaDeSorte(quantidade, tamanho);
+  state.cascataDiaJogos = jogos;
+  renderCascataDia();
+  document.getElementById("btnCopiar").disabled = false;
+  document.getElementById("btnPdf").disabled = false;
+  document.getElementById("btnLimparCascataDia").disabled = false;
+
+  if(jogos.length < quantidade){
+    toast("error", `Só consegui ${jogos.length} de ${quantidade} jogo(s)`, "O filtro de soma/consecutivos limita quantas combinações únicas cabem nas tabelas.");
+  } else {
+    toast("success", `${quantidade} jogo(s) gerado(s)`, `Dia de Sorte · cascata ${tamanho >= 13 ? "22→19→15" : tamanho >= 10 ? "15→12" : "15→9"}${tamanho !== (tamanho>=13?15:tamanho>=10?12:9) ? "→"+tamanho : ""}`);
+  }
+});
+
+document.getElementById("btnLimparCascataDia").addEventListener("click", () => {
+  state.cascataDiaJogos = [];
+  renderCascataDia();
+  document.getElementById("btnCopiar").disabled = true;
+  document.getElementById("btnPdf").disabled = true;
+  document.getElementById("btnLimparCascataDia").disabled = true;
 });
 
 function parseCustom23(){
@@ -3400,13 +3428,10 @@ if(typeof pdfjsLib !== "undefined"){
 renderAll();
 renderCascataMS();
 renderCascataDS();
+renderCascataDia();
 renderInicio();
 popularSelectConferidor();
 renderConferidor();
-renderDesdobModos();
-renderDesdobGrid();
-atualizarDesdobParams();
-renderDesdobramento();
 mostrarInicio();
 
 </script>
