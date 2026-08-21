@@ -3573,9 +3573,13 @@ function parseJogosMultilinha(texto, c){
   if(!texto) return { jogos: [], ignoradas: 0 };
   const linhasComConteudo = texto.split("\n")
     .filter(l => l.trim() !== "")
-    // descarta cabeçalho/rodapé do PDF exportado (título e data/hora) e
-    // linhas de espelho, que não são jogos a conferir.
-    .filter(l => !/lotolibre/i.test(l))
+    // descarta cabeçalho/rodapé do PDF exportado (título, subtítulo e data/hora),
+    // a linha "Dezenas escolhidas" do cabeçalho do PDF de Desdobramento (presente
+    // em todas as modalidades — megasena, lotofacil, duplasena, lotomania e
+    // diadesorte, pois é a mesma função de exportação para todas) e linhas de
+    // espelho, que não são jogos a conferir.
+    .filter(l => !/lotometrics/i.test(l))
+    .filter(l => !/^\s*dezenas\s+escolhidas\b/i.test(l))
     .filter(l => !/^\s*\d{1,2}\/\d{1,2}\/\d{2,4}[,]?\s*\d{1,2}:\d{2}/.test(l))
     .filter(l => !/^\s*espelho\s*:?/i.test(l));
 
