@@ -665,7 +665,7 @@
             <div class="stack">
               <div class="field">
                 <label for="qtdCascata" class="field-label">Quantidade de jogos</label>
-                <input id="qtdCascata" type="number" min="1" max="500" value="5" class="input input-h">
+                <input id="qtdCascata" type="number" min="1" max="1000" value="5" class="input input-h">
               </div>
 
               <div class="field">
@@ -755,7 +755,7 @@
             <div class="stack">
               <div class="field">
                 <label for="qtdCascataMS" class="field-label">Quantidade de jogos</label>
-                <input id="qtdCascataMS" type="number" min="1" max="200" value="10" class="input input-h">
+                <input id="qtdCascataMS" type="number" min="1" max="1000" value="10" class="input input-h">
               </div>
 
               <div class="field">
@@ -850,7 +850,7 @@
             <div class="stack">
               <div class="field">
                 <label for="qtdCascataDS" class="field-label">Quantidade de jogos</label>
-                <input id="qtdCascataDS" type="number" min="1" max="200" value="10" class="input input-h">
+                <input id="qtdCascataDS" type="number" min="1" max="1000" value="10" class="input input-h">
               </div>
 
               <div class="field">
@@ -912,7 +912,7 @@
           <div class="hero-glow" style="background-color:var(--accent-diadesorte);"></div>
           <p class="hero-eyebrow">Motor especial · Cascata fixa</p>
           <h2>Dia de Sorte em cascata: 22 → 19 → 15 / 15 → 12 / 9 → jogo</h2>
-          <p>Duas trilhas fixas extraídas da sua planilha (universo 1 a 31): a principal reduz 3 tabelas de 22 dezenas até 19 e depois até 15; a segunda parte de uma tabela fixa de 15 dezenas e reduz até 12 ou até 9. O jogo final (7 a 15 dezenas, como o Dia de Sorte permite apostar) sai da trilha mais próxima do tamanho pedido — quando o tamanho não existe pronto na planilha, tiramos o excedente aleatoriamente da tabela pronta mais próxima, do mesmo jeito que a Cascata da Lotofácil faz pros tamanhos 20 e 18.</p>
+          <p>Duas trilhas extraídas da sua planilha (universo 1 a 31): pra jogos de 13 a 15 dezenas, sorteamos direto dentro de uma das 18 tabelas de 19 dezenas (3 tabelas de 22 × 6 padrões); pra jogos de 7 a 12 dezenas, sorteamos dentro de um conjunto de tabelas de 15 dezenas (a fixa da planilha mais as reduções da trilha de 22). Em ambos os casos o jogo final sai de um sorteio real dentro da tabela — nunca da tabela pronta sem variação — pra garantir muitos jogos distintos mesmo pedindo centenas deles.</p>
 
           <dl class="stat-grid">
             <div class="stat-card"><dt>Tabelas de 22</dt><dd>3 ativas</dd></div>
@@ -928,7 +928,7 @@
             <div class="stack">
               <div class="field">
                 <label for="qtdCascataDia" class="field-label">Quantidade de jogos</label>
-                <input id="qtdCascataDia" type="number" min="1" max="200" value="10" class="input input-h">
+                <input id="qtdCascataDia" type="number" min="1" max="1000" value="10" class="input input-h">
               </div>
 
               <div class="field">
@@ -2020,11 +2020,23 @@ function pad(n){ return String(n).padStart(2, "0"); }
    Trilha B: uma tabela fixa única de 15 dezenas (independente da Trilha A),
    reduzida por padrões posicionais até 12 dezenas (5 padrões) ou direto até
    9 dezenas (8 padrões).
-   O Dia de Sorte permite apostar de 7 a 15 dezenas. Os tamanhos 7, 8, 10, 11,
-   13 e 14 não existem prontos na planilha — pra esses, pegamos a tabela pronta
-   mais próxima (15, 12 ou 9) e tiramos o excedente aleatoriamente, do mesmo
-   jeito que a Cascata da Lotofácil faz pros tamanhos 20 e 18 (não vem da
-   planilha, mas mantém a base fixa). */
+   O Dia de Sorte permite apostar de 7 a 15 dezenas.
+
+   CORREÇÃO (bug "só gera 5 jogos"): nos tamanhos que batiam exatamente com uma
+   tabela pronta (9, 12 e 15 dezenas), o motor antigo pegava a tabela pronta
+   e devolvia ela DIRETO, sem sortear nada — a única variação vinha de girar
+   entre os poucos padrões fixos (só 5 padrões pra 12 dezenas, 8 pra 9, 144
+   combinações pra 15), então acima disso ele só repetia jogo já visto e
+   parava. Agora, igual a Mega-Sena e a Dupla-Sena já fazem, o jogo final
+   sempre é sorteado dentro de uma tabela maior:
+   - 13 a 15 dezenas: sorteia dentro da tabela de 19 (nunca dentro da de 15
+     pronta), então mesmo pedindo as 15 inteiras ainda sobra sorteio real.
+   - 7 a 12 dezenas: sorteia dentro de um conjunto de tabelas de 15 (a fixa da
+     Trilha B mais as 144 tabelas de 15 já reduzidas da Trilha A — todas elas
+     vêm da mesma planilha, só que combinadas), em vez de só a única tabela
+     fixa de 15. Isso multiplica muito o número de jogos de 12 dezenas
+     possíveis (antes travava em 5, mesmo limite de C(15,12)=455 de uma
+     tabela só). */
 
 const DDS_TABELAS_22 = [
   [2, 3, 5, 6, 8, 9, 10, 12, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31],
@@ -2117,7 +2129,41 @@ const DDS_COMBOS_A = (() => {
   return c;
 })();
 
-let ddsCursorA = 0, ddsCursorB12 = 0, ddsCursorB9 = 0;
+// Pool de tabelas de 19 pra Trilha A (13 a 15 dezenas): uma por combinação
+// de tabela-de-22 × padrão-19 (3 × 6 = 18). O jogo final sempre é sorteado
+// dentro dessas 19 — nunca devolvido direto — então até pedir as 15 inteiras
+// ainda sobra sorteio real (19 - 15 = 4 dezenas de folga).
+const DDS_POOL_19 = (() => {
+  const pool = [];
+  for(let a=0; a<DDS_TABELAS_22.length; a++)
+    for(let b=0; b<DDS_RANKS_19.length; b++){
+      const t22 = [...DDS_TABELAS_22[a]].sort((x,y)=>x-y);
+      const t19 = ddsAplicarRank(t22, DDS_RANKS_19[b]).sort((x,y)=>x-y);
+      pool.push({ idxT22:a, idxR19:b, t22, t19 });
+    }
+  return pool;
+})();
+
+// Pool de tabelas de 15 pra Trilha B (7 a 12 dezenas): a tabela fixa da
+// Trilha B mais todas as tabelas de 15 já reduzidas da Trilha A (dedupe por
+// conteúdo). Sortear dentro de várias tabelas de 15 em vez de só uma quebra
+// o teto de C(15,12)=455 jogos de 12 dezenas que uma tabela sozinha impõe.
+const DDS_POOL_15 = (() => {
+  const vistos = new Set();
+  const pool = [];
+  const add = (t15) => {
+    const chave = t15.join(",");
+    if(vistos.has(chave)) return;
+    vistos.add(chave);
+    pool.push(t15);
+  };
+  add([...DDS_BASE_15].sort((a,b)=>a-b));
+  for(const combo of DDS_COMBOS_A){
+    const t = ddsGerarTabelasA(combo.idxT22, combo.idxR19, combo.idxR15);
+    add(t.t15);
+  }
+  return pool;
+})();
 
 function gerarCascataDiaDeSorte(quantidade, tamanho){
   tamanho = Math.min(Math.max(tamanho || 7, 7), 15);
@@ -2128,29 +2174,21 @@ function gerarCascataDiaDeSorte(quantidade, tamanho){
 
   while(jogos.length < quantidade && tentativasGlobais < limiteGlobal){
     tentativasGlobais++;
-    let trilha, universoFinal, nativo;
+    let trilha, universoFinal;
 
     if(tamanho >= 13){
-      const combo = DDS_COMBOS_A[ddsCursorA % DDS_COMBOS_A.length]; ddsCursorA++;
-      const t = ddsGerarTabelasA(combo.idxT22, combo.idxR19, combo.idxR15);
-      trilha = { ramo:"A", idxT22:combo.idxT22, idxR19:combo.idxR19, idxR15:combo.idxR15, t22:t.t22, t19:t.t19, t15:t.t15 };
-      universoFinal = t.t15; nativo = 15;
-    } else if(tamanho >= 10){
-      const idx = ddsCursorB12 % DDS_RANKS_12.length; ddsCursorB12++;
-      const t = ddsGerarTabelasB12(idx);
-      trilha = { ramo:"B12", idxR12:idx, t15b:t.t15b, t12:t.t12 };
-      universoFinal = t.t12; nativo = 12;
+      const seed = DDS_POOL_19[Math.floor(Math.random() * DDS_POOL_19.length)];
+      trilha = { ramo:"A", idxT22:seed.idxT22, idxR19:seed.idxR19, t22:seed.t22, t19:seed.t19 };
+      universoFinal = seed.t19;
     } else {
-      const idx = ddsCursorB9 % DDS_RANKS_9.length; ddsCursorB9++;
-      const t = ddsGerarTabelasB9(idx);
-      trilha = { ramo:"B9", idxR9:idx, t15b:t.t15b, t9:t.t9 };
-      universoFinal = t.t9; nativo = 9;
+      const t15b = DDS_POOL_15[Math.floor(Math.random() * DDS_POOL_15.length)];
+      trilha = { ramo:"B", t15b };
+      universoFinal = t15b;
     }
 
-    const remover = nativo - tamanho;
     let jogo = null;
-    for(let tent=0; tent<50; tent++){
-      const cand = remover > 0 ? ddsRemoverAleatorio(universoFinal, remover) : [...universoFinal].sort((a,b)=>a-b);
+    for(let tent=0; tent<60; tent++){
+      const cand = ddsRemoverAleatorio(universoFinal, universoFinal.length - tamanho);
       if(ddsJogoValido(cand)){ jogo = cand; break; }
     }
     if(!jogo) continue;
@@ -3284,7 +3322,7 @@ function renderCascataMS(){
 
 document.getElementById("btnGerarCascataMS").addEventListener("click", () => {
   const qtdInput = parseInt(document.getElementById("qtdCascataMS").value, 10) || 1;
-  const quantidade = Math.min(Math.max(qtdInput, 1), 200);
+  const quantidade = Math.min(Math.max(qtdInput, 1), 1000);
   const tamanho = Math.min(Math.max(parseInt(document.getElementById("tamanhoCascataMS").value, 10) || 6, 6), 15);
   const anterior = parseDezenas(document.getElementById("anteriorCascataMS").value, LOTERIAS.megasena);
 
@@ -3358,7 +3396,7 @@ function renderCascataDS(){
 
 document.getElementById("btnGerarCascataDS").addEventListener("click", () => {
   const qtdInput = parseInt(document.getElementById("qtdCascataDS").value, 10) || 1;
-  const quantidade = Math.min(Math.max(qtdInput, 1), 200);
+  const quantidade = Math.min(Math.max(qtdInput, 1), 1000);
   const tamanho = Math.min(Math.max(parseInt(document.getElementById("tamanhoCascataDS").value, 10) || 6, 6), 12);
   document.getElementById("statTamanhoDS").textContent = tamanho;
 
@@ -3410,30 +3448,16 @@ function renderCascataDia(){
         <span class="trilha-seta">→</span>
         <div class="trilha-etapa"><span class="n">19</span><span class="l">padrão ${j.idxR19+1}</span></div>
         <span class="trilha-seta">→</span>
-        <div class="trilha-etapa"><span class="n">15</span><span class="l">padrão ${j.idxR15+1}</span></div>
-        <span class="trilha-seta">→</span>
-        <div class="trilha-etapa" style="border-color:var(--accent-diadesorte);"><span class="n">${j.resultado.length}</span><span class="l">jogo</span></div>
-      `
-      : j.ramo === "B12"
-      ? `
-        <div class="trilha-etapa"><span class="n">15</span><span class="l">tabela fixa</span></div>
-        <span class="trilha-seta">→</span>
-        <div class="trilha-etapa"><span class="n">12</span><span class="l">padrão ${j.idxR12+1}</span></div>
-        <span class="trilha-seta">→</span>
         <div class="trilha-etapa" style="border-color:var(--accent-diadesorte);"><span class="n">${j.resultado.length}</span><span class="l">jogo</span></div>
       `
       : `
-        <div class="trilha-etapa"><span class="n">15</span><span class="l">tabela fixa</span></div>
-        <span class="trilha-seta">→</span>
-        <div class="trilha-etapa"><span class="n">9</span><span class="l">padrão ${j.idxR9+1}</span></div>
+        <div class="trilha-etapa"><span class="n">15</span><span class="l">tabela</span></div>
         <span class="trilha-seta">→</span>
         <div class="trilha-etapa" style="border-color:var(--accent-diadesorte);"><span class="n">${j.resultado.length}</span><span class="l">jogo</span></div>
       `;
     const detalheHtml = j.ramo === "A"
-      ? `22 dezenas: ${j.t22.map(pad).join(", ")}<br>19 dezenas: ${j.t19.map(pad).join(", ")}<br>15 dezenas: ${j.t15.map(pad).join(", ")}`
-      : j.ramo === "B12"
-      ? `15 dezenas (fixa): ${j.t15b.map(pad).join(", ")}<br>12 dezenas: ${j.t12.map(pad).join(", ")}`
-      : `15 dezenas (fixa): ${j.t15b.map(pad).join(", ")}<br>9 dezenas: ${j.t9.map(pad).join(", ")}`;
+      ? `22 dezenas: ${j.t22.map(pad).join(", ")}<br>19 dezenas: ${j.t19.map(pad).join(", ")}`
+      : `15 dezenas: ${j.t15b.map(pad).join(", ")}`;
     return `
       <li class="cascata-card">
         <div class="jogo-row">
@@ -3453,7 +3477,7 @@ function renderCascataDia(){
 
 document.getElementById("btnGerarCascataDia").addEventListener("click", () => {
   const qtdInput = parseInt(document.getElementById("qtdCascataDia").value, 10) || 1;
-  const quantidade = Math.min(Math.max(qtdInput, 1), 200);
+  const quantidade = Math.min(Math.max(qtdInput, 1), 1000);
   const tamanho = Math.min(Math.max(parseInt(document.getElementById("tamanhoCascataDia").value, 10) || 7, 7), 15);
   document.getElementById("statTamanhoDia").textContent = tamanho;
 
@@ -3467,7 +3491,7 @@ document.getElementById("btnGerarCascataDia").addEventListener("click", () => {
   if(jogos.length < quantidade){
     toast("error", `Só consegui ${jogos.length} de ${quantidade} jogo(s)`, "O filtro de soma/consecutivos limita quantas combinações únicas cabem nas tabelas.");
   } else {
-    toast("success", `${quantidade} jogo(s) gerado(s)`, `Dia de Sorte · cascata ${tamanho >= 13 ? "22→19→15" : tamanho >= 10 ? "15→12" : "15→9"}${tamanho !== (tamanho>=13?15:tamanho>=10?12:9) ? "→"+tamanho : ""}`);
+    toast("success", `${quantidade} jogo(s) gerado(s)`, `Dia de Sorte · cascata ${tamanho >= 13 ? "22→19" : "15"}→${tamanho}`);
   }
 });
 
@@ -3517,7 +3541,7 @@ atualizarComoFunciona();
 
 document.getElementById("btnGerarCascata").addEventListener("click", () => {
   const qtdInput = parseInt(document.getElementById("qtdCascata").value, 10) || 1;
-  const quantidade = Math.min(Math.max(qtdInput, 1), 500);
+  const quantidade = Math.min(Math.max(qtdInput, 1), 1000);
   const tamanhoAlvo = parseInt(document.getElementById("tamanhoCascata").value, 10);
 
   let t23Custom = null;
